@@ -2,44 +2,49 @@ import sys
 
 
 class Lox:
-    def __init__(self):
-        self._has_error = False
+    _has_error: bool = False
 
-    def _run(self, code: str):
+    @classmethod
+    def _run(cls, code: str):
         ...
 
-    def _run_file(self, path: str):
+    @classmethod
+    def _run_file(cls, path: str):
         with open(path, "r") as f:
             code = f.read()
-        self._run(code)
+        cls._run(code)
 
         # indicate an error in the exit code
-        if self._has_error:
+        if cls._has_error:
             sys.exit(65)
 
-    def _run_prompt(self):
+    @classmethod
+    def _run_prompt(cls):
         """REPL"""
         while True:
             try:
                 line = input("> ")
-                self._run(line)
+                cls._run(line)
                 # in REPL, the session should be alive even the user make a mistake
-                self._has_error = False
+                cls._has_error = False
             except EOFError:
                 break
 
-    def error(self, line: int, msg: str):
-        self.report(line, "", msg)
+    @classmethod
+    def error(cls, line: int, msg: str):
+        cls._report(line, "", msg)
 
-    def report(self, line: int, where: str, msg: str):
+    @classmethod
+    def _report(cls, line: int, where: str, msg: str):
         print(f"[line {line}] Error {where}: {msg}", file=sys.stderr)
-        self._has_error = True
+        cls._has_error = True
 
-    def cli(self, args: list[str]):
+    @classmethod
+    def cli(cls, args: list[str]):
         if len(args) > 2:
             print("Usage: pyloc [script]")
             sys.exit(64)
         elif len(args) == 2:
-            self._run_file(args[0])
+            cls._run_file(args[0])
         else:
-            self._run_prompt()
+            cls._run_prompt()
