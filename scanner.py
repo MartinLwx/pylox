@@ -51,6 +51,13 @@ class Scanner:
 
         return self._source[self._current]
 
+    def _peek_next(self) -> str:
+        """Don't consume the . in a number literal until we're sure thers is a digit after it"""
+        if self._current + 1 >= len(self._source):
+            return "\0"
+
+        return self._source[self._current + 1]
+
     def _form_string(self):
         while self._peek() != '"' and not self.is_at_end():
             # a string literal is "..."
@@ -68,6 +75,23 @@ class Scanner:
         # note: [self._start + 1:self._current - 1] will chose string INSIDE "..."
         self._add_token(
             Token(TokenType.STRING, self._source[self._start + 1 : self._current - 1])
+        )
+
+    def _is_digit(self, ch):
+        return "0" <= ch <= "9"
+
+    def _form_number(self):
+        while self._is_digit(self._peek()):
+            self._advance()
+        if self._peek() == "." and self._is_digit(self._peek_next()):
+            # consume the . in a number literal
+            self._advance()
+            # consume the fractional part
+            while self._is_digit(self._peek()):
+                self._advance()
+
+        self._add_token(
+            Token(TokenType.NUMBER, float(self._source[self._start : self._current]))
         )
 
     def _scan_tokens(self):
@@ -129,6 +153,8 @@ class Scanner:
                     ...
                 case "\n":
                     self._line += 1
+                case ch if self._is_digit(ch):
+                    self._form_number()
                 case '"':
                     # string literals
                     self._form_string()
