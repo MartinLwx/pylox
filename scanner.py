@@ -1,5 +1,6 @@
 from typing import Any
 from token import Token, TokenType
+from lox import Lox
 
 
 class Scanner:
@@ -17,43 +18,122 @@ class Scanner:
     def is_at_end(self):
         return self._current >= len(self._source)
 
-    def advance(self) -> str:
+    def _advance(self) -> str:
         """Consume the next char and return"""
         self._current += 1
         return self._source[self._current]
 
-    def add_token(self, token_type: TokenType, literal: Any = ""):
+    def _add_token(self, token_type: TokenType, literal: Any = ""):
         """There is no method overloading in Python"""
-        self._tokens.append(Token(token_type, self._source[self._start:self._current], literal, self._line))
+        self._tokens.append(
+            Token(
+                token_type,
+                self._source[self._start : self._current],
+                literal,
+                self._line,
+            )
+        )
 
-    def scan_tokens(self):
+    def _match(self, ch: str) -> bool:
+        """Only consume the current char if it's what we are looking for"""
+        if self.is_at_end():
+            return False
+        if self._source[self._current] != ch:
+            return False
+
+        self._current += 1
+        return True
+
+    def _peek(self) -> str:
+        """Similar to `self._match` function but won't consume chars"""
+        if self.is_at_end():
+            return "\0"
+
+        return self._source[self._current]
+
+    def _form_string(self):
+        while self._peek() != '"' and not self.is_at_end():
+            # a string literal is "..."
+            if self._peek() == "\n":
+                self._line += 1
+            self._advance()
+
+        if self.is_at_end():
+            Lox.error(self._line, "Unterminated string.")
+            return
+
+        # consume the closing "
+        self._advance()
+
+        # note: [self._start + 1:self._current - 1] will chose string INSIDE "..."
+        self._add_token(
+            Token(TokenType.STRING, self._source[self._start + 1 : self._current - 1])
+        )
+
+    def _scan_tokens(self):
         while not self.is_at_end():
             # invariant: in each loop
             # , we are at the beginning of the next lexeme
-            c = self.advance()
+            c = self._advance()
             match c:
+                # a lexeme whose length is one
                 case "(":
-                    self.add_token(TokenType.LEFT_PAREN)
+                    self._add_token(TokenType.LEFT_PAREN)
                 case ")":
-                    self.add_token(TokenType.RIGHT_PAREN)
+                    self._add_token(TokenType.RIGHT_PAREN)
                 case "{":
-                    self.add_token(TokenType.LEFT_BRACE)
+                    self._add_token(TokenType.LEFT_BRACE)
                 case "}":
-                    self.add_token(TokenType.RIGHT_BRACE)
+                    self._add_token(TokenType.RIGHT_BRACE)
                 case ",":
-                    self.add_token(TokenType.COMMA)
+                    self._add_token(TokenType.COMMA)
                 case ".":
-                    self.add_token(TokenType.DOT)
+                    self._add_token(TokenType.DOT)
                 case "-":
-                    self.add_token(TokenType.MINUS)
+                    self._add_token(TokenType.MINUS)
                 case "+":
-                    self.add_token(TokenType.PLUS)
+                    self._add_token(TokenType.PLUS)
                 case ";":
-                    self.add_token(TokenType.SEMICOLON)
+                    self._add_token(TokenType.SEMICOLON)
                 case "*":
-                    self.add_token(TokenType.STAR)
+                    self._add_token(TokenType.STAR)
+                # a lexeme whose length is two
+                case "!":
+                    self._add_token(
+                        TokenType.BANG_EQUAL if self._match("=") else TokenType.BANG
+                    )
+                case "=":
+                    self._add_token(
+                        TokenType.EQUAL_EQUAL if self._match("=") else TokenType.EQUAL
+                    )
+                case "<":
+                    self._add_token(
+                        TokenType.LESS_EQUAL if self._match("=") else TokenType.LESS
+                    )
+                case ">":
+                    self._add_token(
+                        TokenType.GREATER_EQUAL
+                        if self._match("=")
+                        else TokenType.GREATER
+                    )
+                case "/":
+                    if self._match("/"):
+                        # a comment goes until the end of the line
+                        # keep consume chars until we reach the end of the line
+                        while self._peek() != "\n" and not self.is_at_end():
+                            self._advance()
+                    else:
+                        self._add_token(TokenType.SLASH)
+                case " " | "\r" | "\t":
+                    # ignore whitespaces
+                    ...
+                case "\n":
+                    self._line += 1
+                case '"':
+                    # string literals
+                    self._form_string()
                 case "_":
-                    print(f'{self._line} Unexpected character.')
+                    Lox.error(self._line, "Unexpected character.")
 
             self._start = self._current
         self._tokens.append(Token(TokenType.EOF, None, self._line))
