@@ -4,6 +4,25 @@ from lox import Lox
 
 
 class Scanner:
+    keywords = {
+        "and": TokenType.AND,
+        "class": TokenType.CLASS,
+        "else": TokenType.ELSE,
+        "false": TokenType.FALSE,
+        "for": TokenType.FOR,
+        "fun": TokenType.FUN,
+        "if": TokenType.IF,
+        "nil": TokenType.NIL,
+        "or": TokenType.OR,
+        "print": TokenType.PRINT,
+        "return": TokenType.RETURN,
+        "super": TokenType.SUPER,
+        "this": TokenType.THIS,
+        "true": TokenType.TRUE,
+        "var": TokenType.VAR,
+        "while": TokenType.WHILE,
+    }
+
     def __init__(self, source: str):
         self._source = source
         self._tokens: list[Token] = []
@@ -58,6 +77,15 @@ class Scanner:
 
         return self._source[self._current + 1]
 
+    def _is_digit(self, ch: str) -> bool:
+        return "0" <= ch <= "9"
+
+    def _is_alpha(self, ch: str) -> bool:
+        return "a" <= ch <= "z" or "A" <= ch <= "Z" or ch == "_"
+
+    def _is_alpha_numeric(self, ch: str) -> bool:
+        return self._is_digit(ch) or self._is_alpha(ch)
+
     def _form_string(self):
         while self._peek() != '"' and not self.is_at_end():
             # a string literal is "..."
@@ -77,9 +105,6 @@ class Scanner:
             Token(TokenType.STRING, self._source[self._start + 1 : self._current - 1])
         )
 
-    def _is_digit(self, ch):
-        return "0" <= ch <= "9"
-
     def _form_number(self):
         while self._is_digit(self._peek()):
             self._advance()
@@ -93,6 +118,16 @@ class Scanner:
         self._add_token(
             Token(TokenType.NUMBER, float(self._source[self._start : self._current]))
         )
+
+    def _form_identifier(self):
+        while self._is_alpha_numeric(self._peek()):
+            self._advance()
+
+        text = self._source[self._start : self._current]
+        if text in Scanner.keywords:
+            self._add_token(Scanner.keywords[text])
+        else:
+            self._add_token(TokenType.IDENTIFIER)
 
     def _scan_tokens(self):
         while not self.is_at_end():
@@ -155,6 +190,8 @@ class Scanner:
                     self._line += 1
                 case ch if self._is_digit(ch):
                     self._form_number()
+                case ch if self._is_alpha(ch):
+                    self._form_identifier()
                 case '"':
                     # string literals
                     self._form_string()
