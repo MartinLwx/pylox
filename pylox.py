@@ -2,6 +2,8 @@ import sys
 from typing import Any
 from loguru import logger
 from tokens import Token, TokenType
+from parser import Parser
+from ast_printer import AstPrinter
 
 
 class Scanner:
@@ -221,9 +223,17 @@ class Lox:
         logger.debug(f"Send {code} to scanner")
         lexer = Scanner(code)
         tokens = lexer._scan_tokens()
+        parser = Parser(tokens)
+        expression = parser.parse()
+        if expression is None:
+            # which means err happen
+            Lox._has_error = True
+            logger.error("Parser Error")
+        else:
+            for idx, token in enumerate(tokens):
+                print(f"the {idx}th token: {token}")
 
-        for idx, token in enumerate(tokens):
-            print(f"the {idx}th token: {token}")
+            print(AstPrinter().visit(expression))
 
     @classmethod
     def _run_file(cls, path: str):
