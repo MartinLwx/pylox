@@ -4,6 +4,7 @@ from loguru import logger
 from tokens import Token, TokenType
 from parser import Parser
 from ast_printer import AstPrinter
+from interpreter import InterpreterError, Interpreter
 
 
 class Scanner:
@@ -216,7 +217,9 @@ class Scanner:
 
 
 class Lox:
+    interpreter: Interpreter = Interpreter()  # only 1 interpreter is available
     _has_error: bool = False
+    _has_runtime_error: bool = False
 
     @classmethod
     def _run(cls, code: str):
@@ -235,6 +238,8 @@ class Lox:
 
             print(AstPrinter().visit(expression))
 
+            cls.interpreter.interpret(expression)
+
     @classmethod
     def _run_file(cls, path: str):
         with open(path, "r") as f:
@@ -244,6 +249,8 @@ class Lox:
         # indicate an error in the exit code
         if cls._has_error:
             sys.exit(65)
+        if cls._has_runtime_error:
+            sys.exit(70)
 
     @classmethod
     def _run_prompt(cls):
@@ -260,6 +267,10 @@ class Lox:
     @classmethod
     def error(cls, line: int, msg: str):
         cls._report(line, "", msg)
+
+    @classmethod
+    def runtime_error(cls, e):
+        cls._has_runtime_error = True
 
     @classmethod
     def _report(cls, line: int, where: str, msg: str):

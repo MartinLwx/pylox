@@ -1,18 +1,4 @@
-from expr import Expr, Unary, Binary, Literal, Grouping
-
-
-# use visitor pattern to print a ast
-class ExprVisitor:
-    def visit(self, expr: Expr):
-        method_name = f"visit_{type(expr).__name__}"
-        method = getattr(self, method_name, None)
-        if method is None:
-            method = self.generic_visit
-
-        return method(expr)
-
-    def generic_visit(self, expr):
-        raise RuntimeError(f"No {type(expr).__name__} method")
+from expr import Expr, Unary, Binary, Literal, Grouping, ExprVisitor
 
 
 class AstPrinter(ExprVisitor):
