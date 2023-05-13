@@ -227,8 +227,8 @@ class Lox:
         lexer = Scanner(code)
         tokens = lexer._scan_tokens()
         parser = Parser(tokens)
-        expression = parser.parse()
-        if expression is None:
+        statements = parser.parse()
+        if statements is None:
             # which means err happen
             Lox._has_error = True
             logger.error("Parser Error")
@@ -236,9 +236,9 @@ class Lox:
             for idx, token in enumerate(tokens):
                 print(f"the {idx}th token: {token}")
 
-            print(AstPrinter().visit(expression))
+            # print(AstPrinter().visit(statements))
 
-            cls.interpreter.interpret(expression)
+            cls.interpreter.interpret(statements)
 
     @classmethod
     def _run_file(cls, path: str):

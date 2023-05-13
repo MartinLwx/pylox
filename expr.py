@@ -29,9 +29,24 @@ class Grouping(Expr):
         self.expression = expression
 
 
+# Statements
+class Stmt:
+    ...
+
+
+class Expression(Stmt):
+    def __init__(self, expr: Expr):
+        self.expression = expr
+
+
+class Print(Stmt):
+    def __init__(self, expr: Expr):
+        self.expression = expr
+
+
 # use visitor pattern to print a ast
 class ExprVisitor:
-    def visit(self, expr: Expr):
+    def visit(self, expr: Expr | Print | Expression):
         method_name = f"visit_{type(expr).__name__}"
         method = getattr(self, method_name, None)
         if method is None:

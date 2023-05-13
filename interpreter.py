@@ -1,5 +1,5 @@
 from tokens import TokenType, Token
-from expr import ExprVisitor, Literal, Grouping, Expr, Unary, Binary
+from expr import ExprVisitor, Literal, Grouping, Expr, Unary, Binary, Print, Expression
 
 
 class InterpreterError(Exception):
@@ -23,7 +23,7 @@ class Interpreter(ExprVisitor):
 
         raise InterpreterError(operator, "Operands must be numbers")
 
-    def _evaluate(self, expr: Expr):
+    def _evaluate(self, expr: Expr | Print | Expression):
         return self.visit(expr)
 
     def _is_truthy(self, obj) -> bool:
@@ -104,6 +104,20 @@ class Interpreter(ExprVisitor):
         # unreachable
         return None
 
+    def visit_Expression(self, stmt: Expression):
+        # statements produce no values
+        self._evaluate(stmt.expression)
+
+        return None
+
+    def visit_Print(self, stmt: Print):
+        # statements produce no values
+        value = self._evaluate(stmt.expression)
+
+        print(self.stringify(value))
+
+        return None
+
     def stringify(self, val) -> str:
         if val is None:
             return "nil"
@@ -112,9 +126,9 @@ class Interpreter(ExprVisitor):
 
         return str(val)
 
-    def interpret(self, expr: Expr):
+    def interpret(self, stmts: list[Print | Expression]):
         try:
-            value = self._evaluate(expr)
-            print(f"The value is: {self.stringify(value)}")
+            for stmt in stmts:
+                self._evaluate(stmt)
         except InterpreterError as e:
             return e
