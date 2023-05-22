@@ -29,6 +29,11 @@ class Grouping(Expr):
         self.expression = expression
 
 
+class Variable(Expr):
+    def __init__(self, name: Token):
+        self.name = name
+
+
 # Statements
 class Stmt:
     ...
@@ -42,6 +47,12 @@ class Expression(Stmt):
 class Print(Stmt):
     def __init__(self, expr: Expr):
         self.expression = expr
+
+
+class Var(Stmt):
+    def __init__(self, name: Token, initializer: Expr | None):
+        self.name = name
+        self.initializer = initializer
 
 
 # use visitor pattern to print a ast

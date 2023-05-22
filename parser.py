@@ -1,5 +1,15 @@
 from tokens import Token, TokenType
-from expr import Expr, Binary, Unary, Literal, Grouping, Print, Expression
+from expr import (
+    Expr,
+    Binary,
+    Unary,
+    Literal,
+    Grouping,
+    Print,
+    Expression,
+    Var,
+    Variable,
+)
 
 
 class ParseError(Exception):
@@ -61,7 +71,7 @@ class Parser:
 
         return self._peek().type == _type
 
-    def _advance(self):
+    def _advance(self) -> Token:
         """Consume the current token and returns it"""
         if not self._is_at_end():
             self.current += 1
@@ -87,14 +97,14 @@ class Parser:
         if self._check(_type):
             return self._advance()
 
-        return self._error(self._peek(), msg)
+        raise self._error(self._peek(), msg)
 
     def _expression(self) -> Expr:
-        """expression -> equality"""
+        """expression  -> equality"""
         return self._equality()
 
     def _equality(self) -> Expr:
-        """equality -> comparison ( ( "!=" | "==" ) comparison)*"""
+        """equality    -> comparison ( ( "!=" | "==" ) comparison)*"""
         # the first comparison nonterminal translates to the first call to self._comparison()
         expr = self._comparison()
 
@@ -112,7 +122,7 @@ class Parser:
         return expr
 
     def _comparison(self) -> Expr:
-        """comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term)*;"""
+        """comparison  -> term ( ( ">" | ">=" | "<" | "<=" ) term)*;"""
         expr = self._term()
 
         while self._match(
@@ -130,7 +140,7 @@ class Parser:
         return expr
 
     def _term(self) -> Expr:
-        """term       -> factor ( ( "-" | "+" ) factor)*;"""
+        """term        -> factor ( ( "-" | "+" ) factor)*;"""
         expr = self._factor()
 
         while self._match([TokenType.MINUS, TokenType.PLUS]):
@@ -141,7 +151,7 @@ class Parser:
         return expr
 
     def _factor(self) -> Expr:
-        """factor     -> unary ( ( "/" | "*" ) unary)*;"""
+        """factor      -> unary ( ( "/" | "*" ) unary)*;"""
         expr = self._unary()
 
         while self._match([TokenType.SLASH, TokenType.STAR]):
@@ -152,7 +162,7 @@ class Parser:
         return expr
 
     def _unary(self) -> Expr:
-        """unary      -> ( "!" | "-" ) unary | primary;"""
+        """unary       -> ( "!" | "-" ) unary | primary;"""
         if self._match([TokenType.BANG, TokenType.MINUS]):
             operator = self._previous()
             right = self._unary()
@@ -161,16 +171,18 @@ class Parser:
         return self._primary()
 
     def _primary(self) -> Expr:
-        """primary    -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")";"""
-        if self._match([TokenType.FALSE]):
-            return Literal(False)
+        """primary     -> NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil" | "(" expression ")";"""
+        if self._match([TokenType.NUMBER, TokenType.STRING]):
+            return Literal(self._previous().literal)
+        if self._match([TokenType.IDENTIFIER]):
+            return Variable(self._previous())
         if self._match([TokenType.TRUE]):
             return Literal(True)
+        if self._match([TokenType.FALSE]):
+            return Literal(False)
         if self._match([TokenType.NIL]):
             return Literal(None)
 
-        if self._match([TokenType.NUMBER, TokenType.STRING]):
-            return Literal(self._previous().literal)
         if self._match([TokenType.LEFT_PAREN]):
             expr = self._expression()
             self._consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
@@ -179,18 +191,39 @@ class Parser:
         raise self._error(self._peek(), "Expect expressions")
 
     def _print_statement(self) -> Print:
-        """printStmt -> "print" expression ";";"""
+        """printStmt   -> "print" expression ";";"""
         value = self._expression()
         self._consume(TokenType.SEMICOLON, "Expecte ';' after value.")
 
         return Print(value)
 
     def _expression_statement(self) -> Expression:
-        """exprStmt  -> expression ";";"""
+        """exprStmt    -> expression ";";"""
         expr = self._expression()
         self._consume(TokenType.SEMICOLON, "Expecte ';' after value.")
 
         return Expression(expr)
+
+    def _vardeclaration(self) -> Var:
+        """varDecl     -> "var" IDENTIFIER ( "=" expression )? ";" ;"""
+        name = self._consume(TokenType.IDENTIFIER, "Expect variable name.")
+        initializer = None
+        if self._match([TokenType.EQUAL]):
+            initializer = self._expression()
+        self._consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.")
+
+        return Var(name, initializer)
+
+    def _declarations(self):
+        """declaration -> varDecl | statement ;"""
+        try:
+            if self._match([TokenType.VAR]):
+                return self._vardeclaration()
+
+            return self._statement()
+        except ParseError:
+            self._synchronize()
+            return None
 
     def _statement(self) -> Print | Expression:
         """statement -> exprStmt | printStmt;"""
@@ -203,7 +236,7 @@ class Parser:
         statements = []
         try:
             while not self._is_at_end():
-                statements.append(self._statement())
+                statements.append(self._declarations())
 
             return statements
         except ParseError:

@@ -1,17 +1,23 @@
 from tokens import TokenType, Token
-from expr import ExprVisitor, Literal, Grouping, Expr, Unary, Binary, Print, Expression
-
-
-class InterpreterError(Exception):
-    def __init__(self, token: Token, msg: str):
-        self.token = token
-        self.msg = msg
-
-    def __str__(self):
-        return f"{self.msg}\n[line {self.token.line}]"
+from expr import (
+    ExprVisitor,
+    Literal,
+    Grouping,
+    Expr,
+    Unary,
+    Binary,
+    Print,
+    Expression,
+    Var,
+    Variable,
+)
+from errors import InterpreterError
+from environment import Environment
 
 
 class Interpreter(ExprVisitor):
+    environment: Environment = Environment()
+
     def _check_number_operand(self, operator: Token, operand):
         if isinstance(operator, float):
             return
@@ -117,6 +123,16 @@ class Interpreter(ExprVisitor):
         print(self.stringify(value))
 
         return None
+
+    def visit_Var(self, stmt: Var):
+        value = None
+        if stmt.initializer:
+            value = self._evaluate(stmt.initializer)
+
+        self.environment._define(stmt.name.lexeme, value)
+
+    def visit_Variable(self, expr: Variable):
+        return self.environment.get(expr.name)
 
     def stringify(self, val) -> str:
         if val is None:
