@@ -1,3 +1,4 @@
+from loguru import logger
 from tokens import TokenType, Token
 from expr import (
     ExprVisitor,
@@ -10,6 +11,7 @@ from expr import (
     Expression,
     Var,
     Variable,
+    Assign,
 )
 from errors import InterpreterError
 from environment import Environment
@@ -133,6 +135,11 @@ class Interpreter(ExprVisitor):
 
     def visit_Variable(self, expr: Variable):
         return self.environment.get(expr.name)
+
+    def visit_Assign(self, expr: Assign):
+        value = self._evaluate(expr.value)
+        self.environment._assign(expr.name, value)
+        return value
 
     def stringify(self, val) -> str:
         if val is None:

@@ -34,6 +34,12 @@ class Variable(Expr):
         self.name = name
 
 
+class Assign(Expr):
+    def __init__(self, name: Token, value: Expr):
+        self.name = name
+        self.value = value
+
+
 # Statements
 class Stmt:
     ...

@@ -1,3 +1,4 @@
+from loguru import logger
 from tokens import Token, TokenType
 from expr import (
     Expr,
@@ -9,6 +10,7 @@ from expr import (
     Expression,
     Var,
     Variable,
+    Assign,
 )
 
 
@@ -100,8 +102,26 @@ class Parser:
         raise self._error(self._peek(), msg)
 
     def _expression(self) -> Expr:
-        """expression  -> equality"""
-        return self._equality()
+        """expression  -> assignment"""
+        return self._assignment()
+
+    def _assignment(self):
+        """assignment  -> IDENTIFIER "=" assignment | equality"""
+        expr = self._equality()
+
+        if self._match([TokenType.EQUAL]):
+            logger.debug(
+                f"Check if it's an assignment, the type of LHS is {type(expr).__name__}"
+            )
+            equals = self._previous()
+            value = self._assignment()
+            if isinstance(expr, Variable):
+                logger.debug(f"Type checking pass, name = {expr.name}")
+                name = expr.name
+                return Assign(name, value)
+            self._error(equals, "Invalid assignment target.")
+
+        return expr
 
     def _equality(self) -> Expr:
         """equality    -> comparison ( ( "!=" | "==" ) comparison)*"""
@@ -122,7 +142,7 @@ class Parser:
         return expr
 
     def _comparison(self) -> Expr:
-        """comparison  -> term ( ( ">" | ">=" | "<" | "<=" ) term)*;"""
+        """comparison  -> term ( ( ">" | ">=" | "<" | "<=" ) term)*"""
         expr = self._term()
 
         while self._match(
@@ -140,7 +160,7 @@ class Parser:
         return expr
 
     def _term(self) -> Expr:
-        """term        -> factor ( ( "-" | "+" ) factor)*;"""
+        """term        -> factor ( ( "-" | "+" ) factor)*"""
         expr = self._factor()
 
         while self._match([TokenType.MINUS, TokenType.PLUS]):
@@ -151,7 +171,7 @@ class Parser:
         return expr
 
     def _factor(self) -> Expr:
-        """factor      -> unary ( ( "/" | "*" ) unary)*;"""
+        """factor      -> unary ( ( "/" | "*" ) unary)*"""
         expr = self._unary()
 
         while self._match([TokenType.SLASH, TokenType.STAR]):
@@ -162,7 +182,7 @@ class Parser:
         return expr
 
     def _unary(self) -> Expr:
-        """unary       -> ( "!" | "-" ) unary | primary;"""
+        """unary       -> ( "!" | "-" ) unary | primary"""
         if self._match([TokenType.BANG, TokenType.MINUS]):
             operator = self._previous()
             right = self._unary()
@@ -171,7 +191,7 @@ class Parser:
         return self._primary()
 
     def _primary(self) -> Expr:
-        """primary     -> NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil" | "(" expression ")";"""
+        """primary     -> NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil" | "(" expression ")" """
         if self._match([TokenType.NUMBER, TokenType.STRING]):
             return Literal(self._previous().literal)
         if self._match([TokenType.IDENTIFIER]):
@@ -191,21 +211,21 @@ class Parser:
         raise self._error(self._peek(), "Expect expressions")
 
     def _print_statement(self) -> Print:
-        """printStmt   -> "print" expression ";";"""
+        """printStmt   -> "print" expression ";" """
         value = self._expression()
         self._consume(TokenType.SEMICOLON, "Expecte ';' after value.")
 
         return Print(value)
 
     def _expression_statement(self) -> Expression:
-        """exprStmt    -> expression ";";"""
+        """exprStmt    -> expression ";" """
         expr = self._expression()
         self._consume(TokenType.SEMICOLON, "Expecte ';' after value.")
 
         return Expression(expr)
 
     def _vardeclaration(self) -> Var:
-        """varDecl     -> "var" IDENTIFIER ( "=" expression )? ";" ;"""
+        """varDecl     -> "var" IDENTIFIER ( "=" expression )? ";" """
         name = self._consume(TokenType.IDENTIFIER, "Expect variable name.")
         initializer = None
         if self._match([TokenType.EQUAL]):
@@ -215,7 +235,7 @@ class Parser:
         return Var(name, initializer)
 
     def _declarations(self):
-        """declaration -> varDecl | statement ;"""
+        """declaration -> varDecl | statement"""
         try:
             if self._match([TokenType.VAR]):
                 return self._vardeclaration()
@@ -226,7 +246,7 @@ class Parser:
             return None
 
     def _statement(self) -> Print | Expression:
-        """statement -> exprStmt | printStmt;"""
+        """statement -> exprStmt | printStmt"""
         if self._match([TokenType.PRINT]):
             return self._print_statement()
 
