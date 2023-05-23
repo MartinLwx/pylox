@@ -1,3 +1,4 @@
+from typing import Any
 from loguru import logger
 from tokens import TokenType, Token
 from expr import (
@@ -12,12 +13,15 @@ from expr import (
     Var,
     Variable,
     Assign,
+    Block,
+    Stmt,
 )
 from errors import InterpreterError
 from environment import Environment
 
 
 class Interpreter(ExprVisitor):
+    # global environment
     environment: Environment = Environment()
 
     def _check_number_operand(self, operator: Token, operand):
@@ -31,7 +35,7 @@ class Interpreter(ExprVisitor):
 
         raise InterpreterError(operator, "Operands must be numbers")
 
-    def _evaluate(self, expr: Expr | Print | Expression):
+    def _evaluate(self, expr: Expr | Stmt):
         return self.visit(expr)
 
     def _is_truthy(self, obj) -> bool:
@@ -140,6 +144,22 @@ class Interpreter(ExprVisitor):
         value = self._evaluate(expr.value)
         self.environment._assign(expr.name, value)
         return value
+
+    def _execute_block(self, statements: list[Stmt], environment: Environment):
+        logger.debug("Enter new env")
+        previous = self.environment
+        try:
+            self.environment = environment
+            for stmt in statements:
+                self._evaluate(stmt)
+        finally:
+            # restore to previous environment even if an exception is thrown
+            logger.debug(f"Restore to env\n: {previous}")
+            self.environment = previous
+
+    def visit_Block(self, stmt: Block):
+        self._execute_block(stmt.statements, Environment(self.environment))
+        return None
 
     def stringify(self, val) -> str:
         if val is None:

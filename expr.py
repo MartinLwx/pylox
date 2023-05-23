@@ -61,9 +61,14 @@ class Var(Stmt):
         self.initializer = initializer
 
 
+class Block(Stmt):
+    def __init__(self, statements: list[Stmt]):
+        self.statements = statements
+
+
 # use visitor pattern to print a ast
 class ExprVisitor:
-    def visit(self, expr: Expr | Print | Expression):
+    def visit(self, expr: Expr | Stmt):
         method_name = f"visit_{type(expr).__name__}"
         method = getattr(self, method_name, None)
         if method is None:

@@ -11,6 +11,7 @@ from expr import (
     Var,
     Variable,
     Assign,
+    Block,
 )
 
 
@@ -224,6 +225,16 @@ class Parser:
 
         return Expression(expr)
 
+    def _block(self) -> Block:
+        """block       -> "{" declarations* "}" """
+        statements = []
+        # use self._is_at_end() to avoid infinite loop
+        while not self._check(TokenType.RIGHT_BRACE) and not self._is_at_end():
+            statements.append(self._declarations())
+        self._consume(TokenType.RIGHT_BRACE, "Expect '}' after block.")
+
+        return Block(statements)
+
     def _vardeclaration(self) -> Var:
         """varDecl     -> "var" IDENTIFIER ( "=" expression )? ";" """
         name = self._consume(TokenType.IDENTIFIER, "Expect variable name.")
@@ -245,10 +256,12 @@ class Parser:
             self._synchronize()
             return None
 
-    def _statement(self) -> Print | Expression:
-        """statement -> exprStmt | printStmt"""
+    def _statement(self) -> Print | Expression | Block:
+        """statement -> exprStmt | printStmt | block"""
         if self._match([TokenType.PRINT]):
             return self._print_statement()
+        if self._match([TokenType.LEFT_BRACE]):
+            return self._block()
 
         return self._expression_statement()
 
