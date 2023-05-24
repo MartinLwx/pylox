@@ -304,8 +304,48 @@ class Parser:
 
         return WhileStmt(condition, statement)
 
+    def _for_statement(self):
+        """forStmt     -> "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression? ")" statement ;"""
+        self._consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'")
+        if self._match([TokenType.VAR]):
+            initializer = self._vardeclaration()
+        elif self._match([TokenType.SEMICOLON]):
+            initializer = None
+        else:
+            initializer = self._expression_statement()
+
+        condition = None
+        if not self._check(TokenType.SEMICOLON):
+            condition = self._expression()
+        self._consume(TokenType.SEMICOLON, "Expect ';' after loop condition")
+
+        increment = None
+        if not self._check(TokenType.RIGHT_PAREN):
+            increment = self._expression()
+        self._consume(TokenType.RIGHT_PAREN, "Expect ')' after for clause")
+
+        # let's desugar the for loop
+        body = self._statement()
+
+        # the increment should be executed after the body in each iteration
+        if increment:
+            logger.debug(f"Append {increment} to {body}")
+            body = Block([body, Expression(increment)])
+
+        if condition is None:
+            condition = Literal(True)
+
+        body = WhileStmt(condition, body)
+
+        if initializer:
+            body = Block([initializer, body])
+
+        return body
+
     def _statement(self) -> Print | Expression | Block:
-        """statement   -> exprStmt | ifStmt | printStmt | whileStmt | block"""
+        """statement   -> exprStmt | forStmt | ifStmt | printStmt | whileStmt | block"""
+        if self._match([TokenType.FOR]):
+            return self._for_statement()
         if self._match([TokenType.IF]):
             return self._if_statement()
         if self._match([TokenType.PRINT]):
