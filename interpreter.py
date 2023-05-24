@@ -15,6 +15,7 @@ from expr import (
     Assign,
     Block,
     Stmt,
+    IfStmt,
 )
 from errors import InterpreterError
 from environment import Environment
@@ -159,6 +160,14 @@ class Interpreter(ExprVisitor):
 
     def visit_Block(self, stmt: Block):
         self._execute_block(stmt.statements, Environment(self.environment))
+        return None
+
+    def visit_IfStmt(self, stmt: IfStmt):
+        if self._is_truthy(self._evaluate(stmt.condition)):
+            self._evaluate(stmt.then_branch)
+        elif stmt.else_branch:
+            self._evaluate(stmt.else_branch)
+
         return None
 
     def stringify(self, val) -> str:

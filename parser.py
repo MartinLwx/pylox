@@ -12,6 +12,7 @@ from expr import (
     Variable,
     Assign,
     Block,
+    IfStmt,
 )
 
 
@@ -256,8 +257,23 @@ class Parser:
             self._synchronize()
             return None
 
+    def _if_statement(self):
+        """ifStmt      -> "if" "(" expression ")" statement ( "else" statement )? ;"""
+        self._consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'")
+        condition = self._expression()
+        self._consume(TokenType.RIGHT_PAREN, "Expect ')' after if conditon.")
+
+        then_branch = self._statement()
+        else_branch = None
+        if self._match([TokenType.ELSE]):
+            else_branch = self._statement()
+
+        return IfStmt(condition, then_branch, else_branch)
+
     def _statement(self) -> Print | Expression | Block:
-        """statement -> exprStmt | printStmt | block"""
+        """statement   -> exprStmt | ifStmt | printStmt | block"""
+        if self._match([TokenType.IF]):
+            return self._if_statement()
         if self._match([TokenType.PRINT]):
             return self._print_statement()
         if self._match([TokenType.LEFT_BRACE]):

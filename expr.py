@@ -2,6 +2,7 @@ from typing import Any
 from tokens import Token
 
 
+# Expressions
 class Expr:
     ...
 
@@ -64,6 +65,13 @@ class Var(Stmt):
 class Block(Stmt):
     def __init__(self, statements: list[Stmt]):
         self.statements = statements
+
+
+class IfStmt(Stmt):
+    def __init__(self, condition: Expr, then_branch: Stmt, else_branch: Stmt | None):
+        self.condition = condition
+        self.then_branch = then_branch
+        self.else_branch = else_branch
 
 
 # use visitor pattern to print a ast
