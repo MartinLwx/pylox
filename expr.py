@@ -81,6 +81,12 @@ class IfStmt(Stmt):
         self.else_branch = else_branch
 
 
+class WhileStmt(Stmt):
+    def __init__(self, condition: Expr, body: Stmt):
+        self.condition = condition
+        self.body = body
+
+
 # use visitor pattern to print a ast
 class ExprVisitor:
     def visit(self, expr: Expr | Stmt):

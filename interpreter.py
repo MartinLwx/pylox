@@ -17,6 +17,7 @@ from expr import (
     Stmt,
     IfStmt,
     Logical,
+    WhileStmt,
 )
 from errors import InterpreterError
 from environment import Environment
@@ -147,6 +148,19 @@ class Interpreter(ExprVisitor):
         self.environment._assign(expr.name, value)
         return value
 
+    def visit_Logical(self, expr: Logical):
+        """A logic oprator merely guarantees it will return a value with appropriate truthiness"""
+        left = self._evaluate(expr.left)
+
+        if expr.operator.type == TokenType.OR:
+            if self._is_truthy(left):
+                return left
+        else:
+            if not self._is_truthy(left):
+                return left
+
+        return self._evaluate(expr.right)
+
     def _execute_block(self, statements: list[Stmt], environment: Environment):
         logger.debug("Enter new env")
         previous = self.environment
@@ -171,18 +185,11 @@ class Interpreter(ExprVisitor):
 
         return None
 
-    def visit_Logical(self, expr: Logical):
-        """A logic oprator merely guarantees it will return a value with appropriate truthiness"""
-        left = self._evaluate(expr.left)
+    def visit_WhileStmt(self, stmt: WhileStmt):
+        while self._is_truthy(self._evaluate(stmt.condition)):
+            self._evaluate(stmt.body)
 
-        if expr.operator.type == TokenType.OR:
-            if self._is_truthy(left):
-                return left
-        else:
-            if not self._is_truthy(left):
-                return left
-
-        return self._evaluate(expr.right)
+        return None
 
     def stringify(self, val) -> str:
         if val is None:

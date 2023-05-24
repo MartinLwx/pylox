@@ -14,6 +14,7 @@ from expr import (
     Block,
     IfStmt,
     Logical,
+    WhileStmt,
 )
 
 
@@ -127,7 +128,7 @@ class Parser:
         return expr
 
     def _logic_or(self) -> Logical | Expr:
-        """logic_or    -> logic_and ( "or" logic_and )* ;"""
+        """logic_or    -> logic_and ( "or" logic_and )*"""
         expr = self._logic_and()
 
         while self._match([TokenType.OR]):
@@ -138,7 +139,7 @@ class Parser:
         return expr
 
     def _logic_and(self) -> Logical | Expr:
-        """logic_and   -> equality ( "and" equality )*  ;"""
+        """logic_and   -> equality ( "and" equality )*"""
         expr = self._equality()
 
         while self._match([TokenType.AND]):
@@ -281,7 +282,7 @@ class Parser:
             return None
 
     def _if_statement(self):
-        """ifStmt      -> "if" "(" expression ")" statement ( "else" statement )? ;"""
+        """ifStmt      -> "if" "(" expression ")" statement ( "else" statement )?"""
         self._consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'")
         condition = self._expression()
         self._consume(TokenType.RIGHT_PAREN, "Expect ')' after if conditon.")
@@ -293,12 +294,24 @@ class Parser:
 
         return IfStmt(condition, then_branch, else_branch)
 
+    def _while_statement(self):
+        """whileStmt   -> "while" "(" expression ")" statement"""
+        self._consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'")
+        condition = self._expression()
+        self._consume(TokenType.RIGHT_PAREN, "Expect ')' after if conditon.")
+
+        statement = self._statement()
+
+        return WhileStmt(condition, statement)
+
     def _statement(self) -> Print | Expression | Block:
-        """statement   -> exprStmt | ifStmt | printStmt | block"""
+        """statement   -> exprStmt | ifStmt | printStmt | whileStmt | block"""
         if self._match([TokenType.IF]):
             return self._if_statement()
         if self._match([TokenType.PRINT]):
             return self._print_statement()
+        if self._match([TokenType.WHILE]):
+            return self._while_statement()
         if self._match([TokenType.LEFT_BRACE]):
             return self._block()
 
