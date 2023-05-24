@@ -13,6 +13,7 @@ from expr import (
     Assign,
     Block,
     IfStmt,
+    Logical,
 )
 
 
@@ -108,8 +109,8 @@ class Parser:
         return self._assignment()
 
     def _assignment(self):
-        """assignment  -> IDENTIFIER "=" assignment | equality"""
-        expr = self._equality()
+        """assignment  -> IDENTIFIER "=" assignment | logic_or"""
+        expr = self._logic_or()
 
         if self._match([TokenType.EQUAL]):
             logger.debug(
@@ -122,6 +123,28 @@ class Parser:
                 name = expr.name
                 return Assign(name, value)
             self._error(equals, "Invalid assignment target.")
+
+        return expr
+
+    def _logic_or(self) -> Logical | Expr:
+        """logic_or    -> logic_and ( "or" logic_and )* ;"""
+        expr = self._logic_and()
+
+        while self._match([TokenType.OR]):
+            operator = self._previous()
+            right = self._logic_and()
+            expr = Logical(expr, operator, right)
+
+        return expr
+
+    def _logic_and(self) -> Logical | Expr:
+        """logic_and   -> equality ( "and" equality )*  ;"""
+        expr = self._equality()
+
+        while self._match([TokenType.AND]):
+            operator = self._previous()
+            right = self._equality()
+            expr = Logical(expr, operator, right)
 
         return expr
 

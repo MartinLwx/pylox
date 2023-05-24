@@ -41,6 +41,13 @@ class Assign(Expr):
         self.value = value
 
 
+class Logical(Expr):
+    def __init__(self, left: Expr, operator: Token, right: Expr):
+        self.left = left
+        self.operator = operator
+        self.right = right
+
+
 # Statements
 class Stmt:
     ...
