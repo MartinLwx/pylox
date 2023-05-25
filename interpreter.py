@@ -20,6 +20,7 @@ from expr import (
     Logical,
     WhileStmt,
     Call,
+    Function,
 )
 from errors import InterpreterError
 from environment import Environment
@@ -174,6 +175,9 @@ class Interpreter(ExprVisitor):
         arguments: list[Expr] = []
         for argument in expr.arguments:
             arguments.append(self._evaluate(argument))
+        logger.debug(
+            f"[Call] {callee} with type {type(callee).__name__}, arity: {callee.arity} vs arguments: {len(arguments)}"
+        )
 
         if not callable(callee):
             raise InterpreterError(expr.paren, "Can only call functions and classes")
@@ -182,9 +186,13 @@ class Interpreter(ExprVisitor):
                 expr.paren,
                 f"Expected {callee.arity} arguments but got {len(arguments)}.",
             )
-        # python's function is the first-class citizen
-        # , so we can just use callee(arguments)
-        return callee() if not arguments else callee(arguments)
+        if isinstance(callee, Function):
+            return callee(self, arguments)
+        else:
+            # for built-in function
+            # python's function is the first-class citizen
+            # , so we can just use callee(arguments)
+            return callee() if not arguments else callee(arguments)
 
     def _execute_block(self, statements: list[Stmt], environment: Environment):
         logger.debug("Enter new env")
@@ -213,6 +221,11 @@ class Interpreter(ExprVisitor):
     def visit_WhileStmt(self, stmt: WhileStmt):
         while self._is_truthy(self._evaluate(stmt.condition)):
             self._evaluate(stmt.body)
+
+        return None
+
+    def visit_Function(self, stmt: Function):
+        self.environment._define(stmt.name.lexeme, stmt)
 
         return None
 

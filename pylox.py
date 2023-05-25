@@ -223,7 +223,6 @@ class Lox:
 
     @classmethod
     def _run(cls, code: str):
-        logger.debug(f"Send {code} to scanner")
         lexer = Scanner(code)
         tokens = lexer._scan_tokens()
         parser = Parser(tokens)

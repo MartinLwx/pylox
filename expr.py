@@ -1,5 +1,9 @@
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from tokens import Token
+from environment import Environment
+
+if TYPE_CHECKING:
+    from interpreter import Interpreter
 
 
 # Expressions
@@ -99,6 +103,14 @@ class Function(Stmt):
         self.name = name
         self.params = params
         self.body = body
+        self.arity = len(self.params)
+
+    def __call__(self, interpreter: "Interpreter", arguments: list[Any]):
+        env = Environment(interpreter.globals)
+        for i, param in enumerate(self.params):
+            env._define(param.lexeme, arguments[i])
+        interpreter._execute_block(self.body.statements, env)
+        return None
 
 
 class ExprVisitor:
@@ -111,4 +123,5 @@ class ExprVisitor:
         return method(expr)
 
     def generic_visit(self, expr):
-        raise RuntimeError(f"No {type(expr).__name__} method")
+        err = f"No {type(expr).__name__} method"
+        raise RuntimeError(err)
