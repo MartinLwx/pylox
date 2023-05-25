@@ -1,6 +1,7 @@
 from typing import Any, TYPE_CHECKING
 from tokens import Token
 from environment import Environment
+from errors import ReturnException
 
 if TYPE_CHECKING:
     from interpreter import Interpreter
@@ -109,8 +110,18 @@ class Function(Stmt):
         env = Environment(interpreter.globals)
         for i, param in enumerate(self.params):
             env._define(param.lexeme, arguments[i])
-        interpreter._execute_block(self.body.statements, env)
+        # unwind all the way to where the function call began
+        try:
+            interpreter._execute_block(self.body.statements, env)
+        except ReturnException as e:
+            return e.value
         return None
+
+
+class ReturnStmt(Stmt):
+    def __init__(self, keyword: Token, value: Expr | None):
+        self.keyword = keyword
+        self.value = value
 
 
 class ExprVisitor:

@@ -21,8 +21,9 @@ from expr import (
     WhileStmt,
     Call,
     Function,
+    ReturnStmt,
 )
-from errors import InterpreterError
+from errors import InterpreterError, ReturnException
 from environment import Environment
 from utils import set_arity
 
@@ -228,6 +229,14 @@ class Interpreter(ExprVisitor):
         self.environment._define(stmt.name.lexeme, stmt)
 
         return None
+
+    def visit_ReturnStmt(self, stmt: ReturnStmt):
+        value = None
+        # if we have a return value, we evaluate it
+        if stmt.value:
+            value = self._evaluate(stmt.value)
+
+        raise ReturnException(value)
 
     def stringify(self, val) -> str:
         if val is None:

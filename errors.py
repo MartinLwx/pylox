@@ -8,3 +8,8 @@ class InterpreterError(Exception):
 
     def __str__(self):
         return f"{self.msg}\n[line {self.token.line}]"
+
+
+class ReturnException(Exception):
+    def __init__(self, value):
+        self.value = value
