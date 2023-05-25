@@ -1,3 +1,4 @@
+import inspect
 from typing import Any
 from loguru import logger
 from tokens import TokenType, Token
@@ -18,6 +19,7 @@ from expr import (
     IfStmt,
     Logical,
     WhileStmt,
+    Call,
 )
 from errors import InterpreterError
 from environment import Environment
@@ -160,6 +162,23 @@ class Interpreter(ExprVisitor):
                 return left
 
         return self._evaluate(expr.right)
+
+    def visit_Call(self, expr: Call):
+        callee = self._evaluate(expr.callee)
+        arguments: list[Expr] = []
+        for argument in expr.arguments:
+            arguments.append(self._evaluate(argument))
+
+        if not callable(callee):
+            raise InterpreterError(expr.paren, "Can only call functions and classes")
+        if len(inspect.getfullargspec(callee).args) != len(arguments):
+            raise InterpreterError(
+                expr.paren,
+                f"Expected {len(inspect.getfullargspec(callee).args)} arguments but got {len(arguments)}.",
+            )
+        # python's function is the first-class citizen
+        # , so we can just use callee(arguments)
+        return callee(arguments)
 
     def _execute_block(self, statements: list[Stmt], environment: Environment):
         logger.debug("Enter new env")

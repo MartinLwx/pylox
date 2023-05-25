@@ -15,6 +15,7 @@ from expr import (
     IfStmt,
     Logical,
     WhileStmt,
+    Call,
 )
 
 
@@ -208,13 +209,36 @@ class Parser:
         return expr
 
     def _unary(self) -> Expr:
-        """unary       -> ( "!" | "-" ) unary | primary"""
+        """unary       -> ( "!" | "-" ) unary | call"""
         if self._match([TokenType.BANG, TokenType.MINUS]):
             operator = self._previous()
             right = self._unary()
             return Unary(operator, right)
 
-        return self._primary()
+        return self._call()
+
+    def _finish_call(self, callee) -> Call:
+        """arguments   -> expression ( "," expression )*"""
+        arguments = []
+        if not self._check(TokenType.RIGHT_PAREN):
+            while True:
+                # Python 3.7+, there is no maximum arguments limitation
+                arguments.append(self._expression())
+                if not self._match([TokenType.COMMA]):
+                    break
+        paren = self._consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments.")
+
+        return Call(callee, paren, arguments)
+
+    def _call(self) -> Call | Expr:
+        """call        -> primary ( "(" arguments? ")" )*"""
+        expr = self._primary()
+        while True:
+            if self._match([TokenType.LEFT_PAREN]):
+                expr = self._finish_call(expr)
+            else:
+                break
+        return expr
 
     def _primary(self) -> Expr:
         """primary     -> NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil" | "(" expression ")" """

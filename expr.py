@@ -48,6 +48,13 @@ class Logical(Expr):
         self.right = right
 
 
+class Call(Expr):
+    def __init__(self, callee: Expr, paren: Token, arguments: list[Expr]):
+        self.callee = callee
+        self.paren = paren
+        self.arguments = arguments
+
+
 # Statements
 class Stmt:
     ...
