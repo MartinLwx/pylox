@@ -14,3 +14,5 @@ A Tree-Walk interpreter of Lox programming language written in Python. The origi
     - Use it to print the AST
     - Use it to evaluate the expressions and execute the statements
 4. Use `Black` to format code
+5. **A little meta-programming**
+    - Set `arity` attribute to any function by using `function.wraps`

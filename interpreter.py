@@ -1,4 +1,4 @@
-import inspect
+import time
 from typing import Any
 from loguru import logger
 from tokens import TokenType, Token
@@ -23,11 +23,17 @@ from expr import (
 )
 from errors import InterpreterError
 from environment import Environment
+from utils import set_arity
 
 
 class Interpreter(ExprVisitor):
     # global environment
-    environment: Environment = Environment()
+    globals: Environment = Environment()
+
+    def __init__(self):
+        # tracks the current environment
+        self.environment = self.globals
+        self.globals._define("clock", set_arity(0)(time.time))
 
     def _check_number_operand(self, operator: Token, operand):
         if isinstance(operator, float):
@@ -171,14 +177,14 @@ class Interpreter(ExprVisitor):
 
         if not callable(callee):
             raise InterpreterError(expr.paren, "Can only call functions and classes")
-        if len(inspect.getfullargspec(callee).args) != len(arguments):
+        if callee.arity != len(arguments):
             raise InterpreterError(
                 expr.paren,
-                f"Expected {len(inspect.getfullargspec(callee).args)} arguments but got {len(arguments)}.",
+                f"Expected {callee.arity} arguments but got {len(arguments)}.",
             )
         # python's function is the first-class citizen
         # , so we can just use callee(arguments)
-        return callee(arguments)
+        return callee() if not arguments else callee(arguments)
 
     def _execute_block(self, statements: list[Stmt], environment: Environment):
         logger.debug("Enter new env")

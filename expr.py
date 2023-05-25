@@ -94,7 +94,6 @@ class WhileStmt(Stmt):
         self.body = body
 
 
-# use visitor pattern to print a ast
 class ExprVisitor:
     def visit(self, expr: Expr | Stmt):
         method_name = f"visit_{type(expr).__name__}"
