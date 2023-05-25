@@ -16,6 +16,7 @@ from expr import (
     Logical,
     WhileStmt,
     Call,
+    Function,
 )
 
 
@@ -284,7 +285,32 @@ class Parser:
 
         return Block(statements)
 
-    def _vardeclaration(self) -> Var:
+    def _func_declaration(self, kind: str) -> Function:
+        """
+        funDecl        -> "fun" function ;
+        function       -> IDENTIFIER "(" parameters? ")" block ;
+        parameters     -> IDENTIFIER ( "," IDENTIFIER )* ;
+        ----
+        use kind so that we can reuse this method later to parse methods
+        """
+        name = self._consume(TokenType.IDENTIFIER, f"Expect {kind} name.")
+        self._consume(TokenType.LEFT_PAREN, f"Expect '(' after {kind} name.")
+        parameters = []
+        if not self._check(TokenType.RIGHT_PAREN):
+            while True:
+                parameters.append(
+                    self._consume(TokenType.IDENTIFIER, "Expect parameter name.")
+                )
+                if not self._match([TokenType.COMMA]):
+                    break
+        self._consume(TokenType.RIGHT_PAREN, f"Expect ')' after {kind} name")
+        # the _block() method assumes the brace token has already been matched
+        self._consume(TokenType.LEFT_BRACE, "Expect '{' before " + kind + " body.")
+        body = self._block()
+
+        return Function(name, parameters, body)
+
+    def _var_declaration(self) -> Var:
         """varDecl     -> "var" IDENTIFIER ( "=" expression )? ";" """
         name = self._consume(TokenType.IDENTIFIER, "Expect variable name.")
         initializer = None
@@ -295,10 +321,12 @@ class Parser:
         return Var(name, initializer)
 
     def _declarations(self):
-        """declaration -> varDecl | statement"""
+        """declaration -> funcDecl | varDecl | statement"""
         try:
+            if self._match([TokenType.FUN]):
+                return self._func_declaration("function")
             if self._match([TokenType.VAR]):
-                return self._vardeclaration()
+                return self._var_declaration()
 
             return self._statement()
         except ParseError:
@@ -332,7 +360,7 @@ class Parser:
         """forStmt     -> "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression? ")" statement ;"""
         self._consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'")
         if self._match([TokenType.VAR]):
-            initializer = self._vardeclaration()
+            initializer = self._var_declaration()
         elif self._match([TokenType.SEMICOLON]):
             initializer = None
         else:

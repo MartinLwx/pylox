@@ -94,6 +94,13 @@ class WhileStmt(Stmt):
         self.body = body
 
 
+class Function(Stmt):
+    def __init__(self, name: Token, params: list[Token], body: Block):
+        self.name = name
+        self.params = params
+        self.body = body
+
+
 class ExprVisitor:
     def visit(self, expr: Expr | Stmt):
         method_name = f"visit_{type(expr).__name__}"
