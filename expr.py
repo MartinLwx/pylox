@@ -100,14 +100,21 @@ class WhileStmt(Stmt):
 
 
 class Function(Stmt):
-    def __init__(self, name: Token, params: list[Token], body: Block):
+    def __init__(
+        self,
+        name: Token,
+        params: list[Token],
+        body: Block,
+        closure: Environment | None = None,
+    ):
         self.name = name
         self.params = params
         self.body = body
         self.arity = len(self.params)
+        self.closure = closure
 
     def __call__(self, interpreter: "Interpreter", arguments: list[Any]):
-        env = Environment(interpreter.globals)
+        env = Environment(self.closure)
         for i, param in enumerate(self.params):
             env._define(param.lexeme, arguments[i])
         # unwind all the way to where the function call began
