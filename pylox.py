@@ -4,7 +4,9 @@ from loguru import logger
 from tokens import Token, TokenType
 from parser import Parser
 from ast_printer import AstPrinter
-from interpreter import InterpreterError, Interpreter
+from interpreter import Interpreter
+from errors import InterpreterError
+from resolver import Resolver
 
 
 class Scanner:
@@ -206,9 +208,9 @@ class Scanner:
         while not self.is_at_end():
             # invariant: in each loop
             # , we are at the beginning of the next lexeme
-            logger.debug(
-                f"Ready to scan next token, current strings is {list(self._source[self._current:])}"
-            )
+            # logger.debug(
+            #     f"Ready to scan next token, current strings is {list(self._source[self._current:])}"
+            # )
             self._start = self._current
             self._scan_token()
 
@@ -223,21 +225,30 @@ class Lox:
 
     @classmethod
     def _run(cls, code: str):
+        logger.debug("--- [Lexical analysis] ---")
+        logger.debug("--------------------------")
         lexer = Scanner(code)
         tokens = lexer._scan_tokens()
+        logger.debug("--- [Syntactic analysis] ---")
         parser = Parser(tokens)
         statements = parser.parse()
+        logger.debug("----------------------------")
         if statements is None:
             # which means err happen
             Lox._has_error = True
             logger.error("Parser Error")
         else:
-            for idx, token in enumerate(tokens):
-                print(f"the {idx}th token: {token}")
+            logger.debug("--- [Semantic analysis] ---")
+            resolver = Resolver(cls.interpreter)
+            resolver._resolve(statements)
+            logger.debug(f"Resolved results: {cls.interpreter.locals}")
+            logger.debug("---------------------------")
 
             # print(AstPrinter().visit(statements))
 
+            logger.debug("--- [Interpretation] ---")
             cls.interpreter.interpret(statements)
+            logger.debug("------------------------")
 
     @classmethod
     def _run_file(cls, path: str):

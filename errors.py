@@ -7,7 +7,7 @@ class InterpreterError(Exception):
         self.msg = msg
 
     def __str__(self):
-        return f"{self.msg}\n[line {self.token.line}]"
+        return f"{self.msg} [line {self.token.line}]"
 
 
 class ReturnException(Exception):

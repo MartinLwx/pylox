@@ -35,6 +35,7 @@ class Interpreter(ExprVisitor):
     def __init__(self):
         # tracks the current environment
         self.environment = self.globals
+        self.locals: dict[Expr, int] = {}
         self.globals._define("clock", set_arity(0)(time.time))
 
     def _check_number_operand(self, operator: Token, operand):
@@ -136,6 +137,7 @@ class Interpreter(ExprVisitor):
         return None
 
     def visit_Print(self, stmt: Print):
+        logger.debug(f"Visit Print: {stmt.expression}")
         # statements produce no values
         value = self._evaluate(stmt.expression)
 
@@ -148,14 +150,21 @@ class Interpreter(ExprVisitor):
         if stmt.initializer:
             value = self._evaluate(stmt.initializer)
 
+        logger.debug(f"Define a variable {stmt.name.lexeme} to {value}")
         self.environment._define(stmt.name.lexeme, value)
 
     def visit_Variable(self, expr: Variable):
-        return self.environment.get(expr.name)
+        logger.debug(f"Look up {expr.name}")
+        return self.lookup_variable(expr.name, expr)
 
     def visit_Assign(self, expr: Assign):
+        logger.debug(f"Handling assign: assign {expr.value} to {expr.name}")
         value = self._evaluate(expr.value)
-        self.environment._assign(expr.name, value)
+        distance = self.locals.get(expr)
+        if distance:
+            self.environment.assign_at(distance, expr.name, value)
+        else:
+            self.globals._assign(expr.name, value)
         return value
 
     def visit_Logical(self, expr: Logical):
@@ -172,6 +181,7 @@ class Interpreter(ExprVisitor):
         return self._evaluate(expr.right)
 
     def visit_Call(self, expr: Call):
+        logger.debug(f"Visit Call expression: {expr.callee}")
         callee = self._evaluate(expr.callee)
         arguments: list[Expr] = []
         for argument in expr.arguments:
@@ -247,7 +257,33 @@ class Interpreter(ExprVisitor):
 
         return str(val)
 
-    def interpret(self, stmts: list[Print | Expression]):
+    def _resolve(self, expr: Expr, depth: int):
+        self.locals[expr] = depth
+
+    def ancestor(self, distance: int):
+        """Walks a fixed number of hoops up the parent chain and returns the env there"""
+        res = self.environment
+        for i in range(distance):
+            res = res.enclosing
+
+        return res
+
+    def get_at(self, distance: int, name: str):
+        return self.ancestor(distance).values.get(name)
+
+    def assign_at(self, distance: int, name: Token, value: Any):
+        self.ancestor(distance).values[name.lexeme] = value
+
+    def lookup_variable(self, name: Token, expr: Expr):
+        """Lookup variable based on it's distance, or it may be a global variable"""
+        distance = self.locals.get(expr, None)
+        logger.debug(f"The distance of {name.lexeme} is {distance}")
+        if distance is not None:
+            return self.get_at(distance, name.lexeme)
+        else:
+            return self.globals.get(name)
+
+    def interpret(self, stmts: list[Stmt] | list[Expr]):
         try:
             for stmt in stmts:
                 self._evaluate(stmt)

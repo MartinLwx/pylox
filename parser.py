@@ -1,6 +1,7 @@
 from loguru import logger
 from tokens import Token, TokenType
 from expr import (
+    Stmt,
     Expr,
     Binary,
     Unary,
@@ -422,7 +423,7 @@ class Parser:
 
         return self._expression_statement()
 
-    def parse(self) -> list[Print | Expression] | None:
+    def parse(self) -> list[Expr] | list[Stmt] | None:
         statements = []
         try:
             while not self._is_at_end():
