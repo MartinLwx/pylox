@@ -1,4 +1,5 @@
 from loguru import logger
+from enum import Enum
 from expr import (
     ExprVisitor,
     Block,
@@ -25,12 +26,21 @@ from tokens import Token
 from errors import InterpreterError
 
 
+class FunctionType(Enum):
+    NONE = 1
+    FUNCTION = 2
+
+
 class Resolver(ExprVisitor):
     def __init__(self, interpreter: Interpreter):
         self.interpreter = interpreter
         self._scopes: list[dict[str, bool]] = []
+        self.current_func = FunctionType.NONE
 
-    def _resolve(self, statements: list[Expr] | list[Stmt] | Expr | Stmt):
+    def _resolve(
+        self,
+        statements: list[Expr] | list[Stmt] | Expr | Stmt,
+    ):
         """Resolve each statement inside"""
         logger.debug(f"Resolve {type(statements)}, Current scopes: {self._scopes}")
         if isinstance(statements, list):
@@ -46,8 +56,10 @@ class Resolver(ExprVisitor):
                 self.interpreter._resolve(expr, len(self._scopes) - 1 - i)
                 return
 
-    def _resolve_function(self, stmt: Function):
+    def _resolve_function(self, stmt: Function, _type: FunctionType):
         logger.debug(f"Resolve Function: {stmt.name}")
+        enclosing_func = self.current_func
+        self.current_func = _type
         self._begin_scope()
         for param in stmt.params:
             self._declare(param)
@@ -55,6 +67,7 @@ class Resolver(ExprVisitor):
         # in static analysis, we immediately traverse into the body
         self._resolve(stmt.body.statements)
         self._end_scope()
+        self.current_func = enclosing_func
 
     def _begin_scope(self):
         self._scopes.append({})
@@ -68,7 +81,12 @@ class Resolver(ExprVisitor):
             return
 
         # this variable is not ready yet, that is, exists but is unavailable
-        self._scopes[-1][name.lexeme] = False
+        scope = self._scopes[-1]
+        if name.lexeme in scope:
+            raise InterpreterError(
+                name, "Already a variable with this name in this scope."
+            )
+        scope[name.lexeme] = False
 
     def _define(self, name: Token):
         if not self._scopes:
@@ -114,7 +132,7 @@ class Resolver(ExprVisitor):
         self._define(stmt.name)
 
         # note that the function can recursively refer to itself
-        self._resolve_function(stmt)
+        self._resolve_function(stmt, FunctionType.FUNCTION)
 
         return None
 
@@ -140,6 +158,8 @@ class Resolver(ExprVisitor):
         return None
 
     def visit_ReturnStmt(self, stmt: ReturnStmt):
+        if self.current_func == FunctionType.NONE:
+            raise InterpreterError(stmt.keyword, "Can't return from top-level code.")
         if stmt.value:
             self._resolve(stmt.value)
 

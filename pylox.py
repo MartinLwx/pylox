@@ -244,8 +244,6 @@ class Lox:
             logger.debug(f"Resolved results: {cls.interpreter.locals}")
             logger.debug("---------------------------")
 
-            # print(AstPrinter().visit(statements))
-
             logger.debug("--- [Interpretation] ---")
             cls.interpreter.interpret(statements)
             logger.debug("------------------------")

@@ -4,7 +4,7 @@ Lox is a dynamically typed, interpretered script language, which is designed by 
 
 ## What's pylox
 
-A Tree-Walk interpreter of Lox programming language written in Python. The original book use Java to implement the interpreter, which is called `jlox`. So I mimicked the name, using the name `pylox` 💅
+An interpreter for the Lox programming language implemented in Python, following a Tree-Walk approach. The original book utilizes Java to build the interpreter, referred to as `jlox`. To maintain consistency, I chose the name `pylox` for the Python implementation. 💅
 
 ## Features
 
@@ -13,6 +13,7 @@ A Tree-Walk interpreter of Lox programming language written in Python. The origi
 3. **Visitor pattern**
     - Use it to print the AST
     - Use it to evaluate the expressions and execute the statements
+    - Use it to do resolution
 4. Use `Black` to format code
 5. **A little meta-programming**
-    - Set `arity` attribute to any function by using `function.wraps`
+    - Set `arity` attribute to built-in function by using `function.wraps`
