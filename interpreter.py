@@ -22,6 +22,7 @@ from expr import (
     Call,
     Function,
     ReturnStmt,
+    Class,
 )
 from errors import InterpreterError, ReturnException
 from environment import Environment
@@ -249,6 +250,14 @@ class Interpreter(ExprVisitor):
 
         raise ReturnException(value)
 
+    def visit_Class(self, stmt: Class):
+        self.environment._define(stmt.name.lexeme, None)
+        # TODO: should we create a LoxClass?
+        # klass = ...
+        self.environment._assign(stmt.name, stmt)
+
+        return None
+
     def stringify(self, val) -> str:
         if val is None:
             return "nil"
@@ -278,6 +287,9 @@ class Interpreter(ExprVisitor):
         """Lookup variable based on it's distance, or it may be a global variable"""
         distance = self.locals.get(expr, None)
         logger.debug(f"The distance of {name.lexeme} is {distance}")
+        # WARNING: do not write `if distance` here. Because when it returns 0,
+        # which means the variable lives in the innermost scope.
+        # And `if 0` will misinterpret this
         if distance is not None:
             return self.get_at(distance, name.lexeme)
         else:

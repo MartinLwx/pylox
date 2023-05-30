@@ -20,6 +20,7 @@ from expr import (
     Literal,
     Logical,
     Unary,
+    Class,
 )
 from interpreter import Interpreter
 from tokens import Token
@@ -42,7 +43,7 @@ class Resolver(ExprVisitor):
         statements: list[Expr] | list[Stmt] | Expr | Stmt,
     ):
         """Resolve each statement inside"""
-        logger.debug(f"Resolve {type(statements)}, Current scopes: {self._scopes}")
+        logger.debug(f"Resolve {statements}, Current scopes: {self._scopes}")
         if isinstance(statements, list):
             for stmt in statements:
                 self.visit(stmt)
@@ -168,6 +169,12 @@ class Resolver(ExprVisitor):
     def visit_WhileStmt(self, stmt: WhileStmt):
         self._resolve(stmt.condition)
         self._resolve(stmt.body)
+
+        return None
+
+    def visit_Class(self, stmt: Class):
+        self._declare(stmt.name)
+        self._define(stmt.name)
 
         return None
 

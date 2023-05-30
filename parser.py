@@ -19,6 +19,7 @@ from expr import (
     Call,
     Function,
     ReturnStmt,
+    Class,
 )
 
 
@@ -287,6 +288,21 @@ class Parser:
 
         return Block(statements)
 
+    def _class_declaration(self) -> Class:
+        """classDecl   -> "class" IDENTIFIER "{" function* "}" """
+        name = self._consume(TokenType.IDENTIFIER, "Expect class name.")
+        logger.debug(f"Found a class: {name}")
+        self._consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
+
+        methods = []
+        while not self._check(TokenType.RIGHT_BRACE) and not self._is_at_end():
+            methods.append(self._func_declaration("method"))
+
+        logger.debug(f"Found {len(methods)} methods")
+        self._consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
+
+        return Class(name, methods)
+
     def _func_declaration(self, kind: str) -> Function:
         """
         funDecl        -> "fun" function ;
@@ -323,8 +339,10 @@ class Parser:
         return Var(name, initializer)
 
     def _declarations(self):
-        """declaration -> funcDecl | varDecl | statement"""
+        """declaration -> classDecl | funcDecl | varDecl | statement"""
         try:
+            if self._match([TokenType.CLASS]):
+                return self._class_declaration()
             if self._match([TokenType.FUN]):
                 return self._func_declaration("function")
             if self._match([TokenType.VAR]):
