@@ -198,7 +198,7 @@ class Interpreter(ExprVisitor):
                 expr.paren,
                 f"Expected {callee.arity} arguments but got {len(arguments)}.",
             )
-        if isinstance(callee, Function):
+        if isinstance(callee, Function) or isinstance(callee, Class):
             return callee(self, arguments)
         else:
             # for built-in function

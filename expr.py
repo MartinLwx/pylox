@@ -135,9 +135,21 @@ class Class(Stmt):
     def __init__(self, name: Token, methods: list[Function]):
         self.name = name
         self.methods = methods
+        self.arity = 0
 
     def __repr__(self):
         return self.name.lexeme
+
+    def __call__(self, interpreter: "Interpreter", arguments: list[Any]):
+        return Instance(self)
+
+
+class Instance:
+    def __init__(self, klass: Class):
+        self.kclass = klass
+
+    def __repr__(self):
+        return f"{self.kclass.name.lexeme} instance"
 
 
 class ExprVisitor:
