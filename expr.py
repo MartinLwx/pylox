@@ -1,7 +1,7 @@
 from typing import Any, TYPE_CHECKING
 from tokens import Token
 from environment import Environment
-from errors import ReturnException
+from errors import ReturnException, InterpreterError
 
 if TYPE_CHECKING:
     from interpreter import Interpreter
@@ -58,6 +58,23 @@ class Call(Expr):
         self.callee = callee
         self.paren = paren
         self.arguments = arguments
+
+
+class Get(Expr):
+    """For property access in OOP"""
+
+    def __init__(self, obj: Expr, name: Token):
+        self.obj = obj
+        self.name = name
+
+
+class Set(Expr):
+    """For setter in OOP"""
+
+    def __init__(self, obj: Expr, name: Token, value: Expr):
+        self.obj = obj
+        self.name = name
+        self.value = value
 
 
 # Statements
@@ -147,6 +164,16 @@ class Class(Stmt):
 class Instance:
     def __init__(self, klass: Class):
         self.kclass = klass
+        self.fields: dict[str, Any] = {}
+
+    def get(self, name: Token):
+        if name.lexeme in self.fields:
+            return self.fields[name.lexeme]
+        else:
+            raise InterpreterError(name, f"Undefined property '{name.lexeme}'.")
+
+    def set(self, name: Token, value: Any):
+        self.fields[name.lexeme] = value
 
     def __repr__(self):
         return f"{self.kclass.name.lexeme} instance"

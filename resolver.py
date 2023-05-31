@@ -16,6 +16,8 @@ from expr import (
     WhileStmt,
     Binary,
     Call,
+    Get,
+    Set,
     Grouping,
     Literal,
     Logical,
@@ -189,6 +191,17 @@ class Resolver(ExprVisitor):
 
         for argument in expr.arguments:
             self._resolve(argument)
+
+        return None
+
+    def visit_Get(self, expr: Get):
+        self._resolve(expr.obj)
+
+        return None
+
+    def visit_Set(self, expr: Set):
+        self._resolve(expr.value)
+        self._resolve(expr.obj)
 
         return None
 

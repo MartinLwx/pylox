@@ -17,6 +17,8 @@ from expr import (
     Logical,
     WhileStmt,
     Call,
+    Get,
+    Set,
     Function,
     ReturnStmt,
     Class,
@@ -115,7 +117,7 @@ class Parser:
         return self._assignment()
 
     def _assignment(self):
-        """assignment  -> IDENTIFIER "=" assignment | logic_or"""
+        """assignment  -> (call ".")? IDENTIFIER "=" assignment | logic_or"""
         expr = self._logic_or()
 
         if self._match([TokenType.EQUAL]):
@@ -125,9 +127,10 @@ class Parser:
             equals = self._previous()
             value = self._assignment()
             if isinstance(expr, Variable):
-                logger.debug(f"Type checking pass, name = {expr.name}")
-                name = expr.name
-                return Assign(name, value)
+                return Assign(expr.name, value)
+            elif isinstance(expr, Get):
+                logger.debug(f"Assign target is Get: {expr}")
+                return Set(expr.obj, expr.name, value)
             self._error(equals, "Invalid assignment target.")
 
         return expr
@@ -235,13 +238,19 @@ class Parser:
         return Call(callee, paren, arguments)
 
     def _call(self) -> Call | Expr:
-        """call        -> primary ( "(" arguments? ")" )*"""
+        """call        -> primary ( "(" arguments? ")" | "." IDENTIFIER )* ;"""
         expr = self._primary()
         while True:
             if self._match([TokenType.LEFT_PAREN]):
                 expr = self._finish_call(expr)
+            elif self._match([TokenType.DOT]):
+                name = self._consume(
+                    TokenType.IDENTIFIER, "Expect property name after '.'."
+                )
+                expr = Get(expr, name)
             else:
                 break
+
         return expr
 
     def _primary(self) -> Expr:

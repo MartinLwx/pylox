@@ -20,9 +20,12 @@ from expr import (
     Logical,
     WhileStmt,
     Call,
+    Get,
+    Set,
     Function,
     ReturnStmt,
     Class,
+    Instance,
 )
 from errors import InterpreterError, ReturnException
 from environment import Environment
@@ -205,6 +208,25 @@ class Interpreter(ExprVisitor):
             # python's function is the first-class citizen
             # , so we can just use callee(arguments)
             return callee() if not arguments else callee(arguments)
+
+    def visit_Get(self, expr: Get):
+        obj = self._evaluate(expr.obj)
+        logger.debug(f"Try to get {expr.name} from {obj}")
+        if isinstance(obj, Instance):
+            return obj.get(expr.name)
+        else:
+            raise InterpreterError(expr.name, "Only instances have properties.")
+
+    def visit_Set(self, expr: Set):
+        obj = self._evaluate(expr.obj)
+
+        if not isinstance(obj, Instance):
+            raise InterpreterError(expr.name, "Only instances have fields.")
+
+        value = self._evaluate(expr.value)
+        obj.set(expr.name, value)
+
+        return value
 
     def _execute_block(self, statements: list[Stmt], environment: Environment):
         logger.debug("Enter new env")
