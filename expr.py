@@ -151,8 +151,14 @@ class ReturnStmt(Stmt):
 class Class(Stmt):
     def __init__(self, name: Token, methods: list[Function]):
         self.name = name
-        self.methods = methods
+        self.methods = {}
+        # use a dict to store all methods, { method_name: method }
+        for method in methods:
+            self.methods[method.name.lexeme] = method
         self.arity = 0
+
+    def find_method(self, name: str) -> Function | None:
+        return self.methods.get(name, None)
 
     def __repr__(self):
         return self.name.lexeme
@@ -169,8 +175,10 @@ class Instance:
     def get(self, name: Token):
         if name.lexeme in self.fields:
             return self.fields[name.lexeme]
-        else:
-            raise InterpreterError(name, f"Undefined property '{name.lexeme}'.")
+        method = self.kclass.find_method(name.lexeme)
+        if method:
+            return method
+        raise InterpreterError(name, f"Undefined property '{name.lexeme}'.")
 
     def set(self, name: Token, value: Any):
         self.fields[name.lexeme] = value

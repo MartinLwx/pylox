@@ -274,8 +274,6 @@ class Interpreter(ExprVisitor):
 
     def visit_Class(self, stmt: Class):
         self.environment._define(stmt.name.lexeme, None)
-        # TODO: should we create a LoxClass?
-        # klass = ...
         self.environment._assign(stmt.name, stmt)
 
         return None

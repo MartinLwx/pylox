@@ -32,6 +32,7 @@ from errors import InterpreterError
 class FunctionType(Enum):
     NONE = 1
     FUNCTION = 2
+    METHOD = 3
 
 
 class Resolver(ExprVisitor):
@@ -60,7 +61,7 @@ class Resolver(ExprVisitor):
                 return
 
     def _resolve_function(self, stmt: Function, _type: FunctionType):
-        logger.debug(f"Resolve Function: {stmt.name}")
+        logger.debug(f"Resolve Function/Method: {stmt.name}")
         enclosing_func = self.current_func
         self.current_func = _type
         self._begin_scope()
@@ -176,6 +177,9 @@ class Resolver(ExprVisitor):
 
     def visit_Class(self, stmt: Class):
         self._declare(stmt.name)
+        for method in stmt.methods.values():
+            declaration = FunctionType.METHOD
+            self._resolve_function(method, declaration)
         self._define(stmt.name)
 
         return None
