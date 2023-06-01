@@ -22,6 +22,7 @@ from expr import (
     Call,
     Get,
     Set,
+    This,
     Function,
     ReturnStmt,
     Class,
@@ -185,7 +186,7 @@ class Interpreter(ExprVisitor):
         return self._evaluate(expr.right)
 
     def visit_Call(self, expr: Call):
-        logger.debug(f"Visit Call expression: {expr.callee}")
+        logger.debug(f"Ready to execute function/method: {expr.callee}")
         callee = self._evaluate(expr.callee)
         arguments: list[Expr] = []
         for argument in expr.arguments:
@@ -227,6 +228,9 @@ class Interpreter(ExprVisitor):
         obj.set(expr.name, value)
 
         return value
+
+    def visit_This(self, expr: This):
+        return self.lookup_variable(expr.keyword, expr)
 
     def _execute_block(self, statements: list[Stmt], environment: Environment):
         logger.debug("Enter new env")

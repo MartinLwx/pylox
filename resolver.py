@@ -18,6 +18,7 @@ from expr import (
     Call,
     Get,
     Set,
+    This,
     Grouping,
     Literal,
     Logical,
@@ -35,11 +36,17 @@ class FunctionType(Enum):
     METHOD = 3
 
 
+class ClassType(Enum):
+    NONE = 1
+    CLASS = 2
+
+
 class Resolver(ExprVisitor):
     def __init__(self, interpreter: Interpreter):
         self.interpreter = interpreter
         self._scopes: list[dict[str, bool]] = []
         self.current_func = FunctionType.NONE
+        self.current_class = ClassType.NONE
 
     def _resolve(
         self,
@@ -176,12 +183,21 @@ class Resolver(ExprVisitor):
         return None
 
     def visit_Class(self, stmt: Class):
+        enclosing_class = self.current_class
+        self.current_class = ClassType.CLASS
+
         self._declare(stmt.name)
+        self._define(stmt.name)
+
+        self._begin_scope()
+        assert len(self._scopes) > 0
+        self._scopes[-1]["this"] = True
         for method in stmt.methods.values():
             declaration = FunctionType.METHOD
             self._resolve_function(method, declaration)
-        self._define(stmt.name)
+        self._end_scope()
 
+        self.enclosing_class = enclosing_class
         return None
 
     def visit_Binary(self, expr: Binary):
@@ -206,6 +222,13 @@ class Resolver(ExprVisitor):
     def visit_Set(self, expr: Set):
         self._resolve(expr.value)
         self._resolve(expr.obj)
+
+        return None
+
+    def visit_This(self, expr: This):
+        if self.current_class == ClassType.NONE:
+            raise InterpreterError(expr.keyword, "Can't use 'this' outside of a class.")
+        self._resolve_local(expr, expr.keyword)
 
         return None
 

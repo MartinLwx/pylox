@@ -77,6 +77,13 @@ class Set(Expr):
         self.value = value
 
 
+class This(Expr):
+    """`This` is a keyword used in OOP"""
+
+    def __init__(self, keyword: Token):
+        self.keyword = keyword
+
+
 # Statements
 class Stmt:
     ...
@@ -141,6 +148,17 @@ class Function(Stmt):
             return e.value
         return None
 
+    def bind(self, instance: "Instance"):
+        """Create a new env nested inside the method's original closure.
+        When the method is called, that will become the parent of the method body's env
+        """
+        env = Environment(self.closure)
+        env._define("this", instance)
+
+        # i.e. we insert a special scope which contains "this"
+        # and we only need to change the closure of original's method
+        return Function(self.name, self.params, self.body, env)
+
 
 class ReturnStmt(Stmt):
     def __init__(self, keyword: Token, value: Expr | None):
@@ -177,7 +195,7 @@ class Instance:
             return self.fields[name.lexeme]
         method = self.kclass.find_method(name.lexeme)
         if method:
-            return method
+            return method.bind(self)
         raise InterpreterError(name, f"Undefined property '{name.lexeme}'.")
 
     def set(self, name: Token, value: Any):

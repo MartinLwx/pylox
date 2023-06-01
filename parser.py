@@ -19,6 +19,7 @@ from expr import (
     Call,
     Get,
     Set,
+    This,
     Function,
     ReturnStmt,
     Class,
@@ -254,11 +255,13 @@ class Parser:
         return expr
 
     def _primary(self) -> Expr:
-        """primary     -> NUMBER | STRING | IDENTIFIER | "true" | "false" | "nil" | "(" expression ")" """
+        """primary     -> NUMBER | STRING | IDENTIFIER | "this" | true" | "false" | "nil" | "(" expression ")" """
         if self._match([TokenType.NUMBER, TokenType.STRING]):
             return Literal(self._previous().literal)
         if self._match([TokenType.IDENTIFIER]):
             return Variable(self._previous())
+        if self._match([TokenType.THIS]):
+            return This(self._previous())
         if self._match([TokenType.TRUE]):
             return Literal(True)
         if self._match([TokenType.FALSE]):
