@@ -279,6 +279,9 @@ class Interpreter(ExprVisitor):
     def visit_Class(self, stmt: Class):
         self.environment._define(stmt.name.lexeme, None)
         self.environment._assign(stmt.name, stmt)
+        for method in stmt.methods.values():
+            if method.name.lexeme == "init":
+                method.is_initializer = True
 
         return None
 
@@ -293,20 +296,6 @@ class Interpreter(ExprVisitor):
     def _resolve(self, expr: Expr, depth: int):
         self.locals[expr] = depth
 
-    def ancestor(self, distance: int):
-        """Walks a fixed number of hoops up the parent chain and returns the env there"""
-        res = self.environment
-        for i in range(distance):
-            res = res.enclosing
-
-        return res
-
-    def get_at(self, distance: int, name: str):
-        return self.ancestor(distance).values.get(name)
-
-    def assign_at(self, distance: int, name: Token, value: Any):
-        self.ancestor(distance).values[name.lexeme] = value
-
     def lookup_variable(self, name: Token, expr: Expr):
         """Lookup variable based on it's distance, or it may be a global variable"""
         distance = self.locals.get(expr, None)
@@ -315,7 +304,7 @@ class Interpreter(ExprVisitor):
         # which means the variable lives in the innermost scope.
         # And `if 0` will misinterpret this
         if distance is not None:
-            return self.get_at(distance, name.lexeme)
+            return self.environment.get_at(distance, name.lexeme)
         else:
             return self.globals.get(name)
 

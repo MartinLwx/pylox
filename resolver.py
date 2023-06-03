@@ -34,6 +34,7 @@ class FunctionType(Enum):
     NONE = 1
     FUNCTION = 2
     METHOD = 3
+    INITIALIZER = 4
 
 
 class ClassType(Enum):
@@ -194,6 +195,8 @@ class Resolver(ExprVisitor):
         self._scopes[-1]["this"] = True
         for method in stmt.methods.values():
             declaration = FunctionType.METHOD
+            if method.name.lexeme == "init":
+                declaration = FunctionType.INITIALIZER
             self._resolve_function(method, declaration)
         self._end_scope()
 

@@ -130,12 +130,14 @@ class Function(Stmt):
         params: list[Token],
         body: Block,
         closure: Environment | None = None,
+        is_initializer: bool = False,
     ):
         self.name = name
         self.params = params
         self.body = body
         self.arity = len(self.params)
         self.closure = closure
+        self.is_initializer = is_initializer
 
     def __call__(self, interpreter: "Interpreter", arguments: list[Any]):
         env = Environment(self.closure)
@@ -146,6 +148,9 @@ class Function(Stmt):
             interpreter._execute_block(self.body.statements, env)
         except ReturnException as e:
             return e.value
+        # if this function is an initializer, we forcibly return "this"
+        if self.is_initializer and self.closure is not None:
+            return self.closure.get_at(0, "this")
         return None
 
     def bind(self, instance: "Instance"):
@@ -157,7 +162,7 @@ class Function(Stmt):
 
         # i.e. we insert a special scope which contains "this"
         # and we only need to change the closure of original's method
-        return Function(self.name, self.params, self.body, env)
+        return Function(self.name, self.params, self.body, env, self.is_initializer)
 
 
 class ReturnStmt(Stmt):
@@ -169,11 +174,13 @@ class ReturnStmt(Stmt):
 class Class(Stmt):
     def __init__(self, name: Token, methods: list[Function]):
         self.name = name
-        self.methods = {}
+        self.methods: dict[str, Function] = {}
         # use a dict to store all methods, { method_name: method }
         for method in methods:
             self.methods[method.name.lexeme] = method
-        self.arity = 0
+        # initiate the arity
+        initializer = self.find_method("init")
+        self.arity = 0 if not initializer else initializer.arity
 
     def find_method(self, name: str) -> Function | None:
         return self.methods.get(name, None)
@@ -182,7 +189,13 @@ class Class(Stmt):
         return self.name.lexeme
 
     def __call__(self, interpreter: "Interpreter", arguments: list[Any]):
-        return Instance(self)
+        instance = Instance(self)
+        # after creating the instance, we want to find an "init" method
+        initializer = self.find_method("init")
+        if initializer:
+            initializer.bind(instance)(interpreter, arguments)
+
+        return instance
 
 
 class Instance:

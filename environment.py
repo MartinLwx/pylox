@@ -4,7 +4,7 @@ from errors import InterpreterError
 
 
 class Environment:
-    def __init__(self, env: "Environment" = None):
+    def __init__(self, env=None):
         # global env has no enclosing env
         self.values: dict[str, Any] = {}
         self.enclosing = env
@@ -40,3 +40,17 @@ class Environment:
             return self.enclosing.get(name)
 
         raise InterpreterError(name, f"Undefined variable '{name.lexeme}'.")
+
+    def get_at(self, distance: int, name: str):
+        return self.ancestor(distance).values.get(name)
+
+    def ancestor(self, distance: int):
+        """Walks a fixed number of hoops up the parent chain and returns the env there"""
+        res = self
+        for i in range(distance):
+            res = res.enclosing
+
+        return res
+
+    def assign_at(self, distance: int, name: Token, value: Any):
+        self.ancestor(distance).values[name.lexeme] = value
