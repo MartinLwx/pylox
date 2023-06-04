@@ -19,6 +19,7 @@ from expr import (
     Get,
     Set,
     This,
+    Super,
     Grouping,
     Literal,
     Logical,
@@ -40,6 +41,7 @@ class FunctionType(Enum):
 class ClassType(Enum):
     NONE = 1
     CLASS = 2
+    SUBCLASS = 3
 
 
 class Resolver(ExprVisitor):
@@ -54,7 +56,7 @@ class Resolver(ExprVisitor):
         statements: list[Expr] | list[Stmt] | Expr | Stmt,
     ):
         """Resolve each statement inside"""
-        logger.debug(f"Resolve {statements}, Current scopes: {self._scopes}")
+        logger.debug(f"Current scopes: {self._scopes}")
         if isinstance(statements, list):
             for stmt in statements:
                 self.visit(stmt)
@@ -64,12 +66,14 @@ class Resolver(ExprVisitor):
     def _resolve_local(self, expr: Expr, name: Token):
         for i in reversed(range(len(self._scopes))):
             if name.lexeme in self._scopes[i]:
-                logger.debug(f"Find {name.lexeme} in scope {i}")
+                logger.debug(
+                    f"Find {name} in scope {i}, and set the hops: {expr} = {len(self._scopes) - 1 - i}"
+                )
                 self.interpreter._resolve(expr, len(self._scopes) - 1 - i)
                 return
 
     def _resolve_function(self, stmt: Function, _type: FunctionType):
-        logger.debug(f"Resolve Function/Method: {stmt.name}")
+        logger.debug(f"Resolve Function/Method: {stmt.name.lexeme}@{_type.name}")
         enclosing_func = self.current_func
         self.current_func = _type
         self._begin_scope()
@@ -164,7 +168,6 @@ class Resolver(ExprVisitor):
         return None
 
     def visit_Print(self, stmt: Print):
-        logger.debug(f"Resolve Print: {stmt.expression}")
         self._resolve(stmt.expression)
 
         return None
@@ -184,22 +187,29 @@ class Resolver(ExprVisitor):
         return None
 
     def visit_Class(self, stmt: Class):
+        logger.debug(f"Entering Class {stmt.name.lexeme}")
         enclosing_class = self.current_class
         self.current_class = ClassType.CLASS
 
         self._declare(stmt.name)
         self._define(stmt.name)
 
-        # Lox allows class declarations even inside blocks
-        # In that case, we need to make sure it's resloved
-        if stmt.superclass:
-            self._resolve(stmt.superclass)
-
         # the names of subclass and superclass should not be equal
         if stmt.superclass and stmt.name.lexeme == stmt.superclass.name.lexeme:
             raise InterpreterError(
                 stmt.superclass.name, "A class can't inherit from itself."
             )
+
+        # Lox allows class declarations even inside blocks
+        # In that case, we need to make sure it's resloved
+        if stmt.superclass:
+            logger.debug(f"resolve its superclass {stmt.superclass.name.lexeme}")
+            self.current_class = ClassType.SUBCLASS
+            self._resolve(stmt.superclass)
+
+        if stmt.superclass:
+            self._begin_scope()
+            self._scopes[-1]["super"] = True
 
         self._begin_scope()
         assert len(self._scopes) > 0
@@ -211,8 +221,12 @@ class Resolver(ExprVisitor):
             self._resolve_function(method, declaration)
         self._end_scope()
 
-        self.enclosing_class = enclosing_class
+        if stmt.superclass:
+            self._end_scope()
 
+        self.current_class = enclosing_class
+
+        logger.debug(f"Exiting Class {stmt.name.lexeme}")
         return None
 
     def visit_Binary(self, expr: Binary):
@@ -243,6 +257,20 @@ class Resolver(ExprVisitor):
     def visit_This(self, expr: This):
         if self.current_class == ClassType.NONE:
             raise InterpreterError(expr.keyword, "Can't use 'this' outside of a class.")
+        self._resolve_local(expr, expr.keyword)
+
+        return None
+
+    def visit_Super(self, expr: Super):
+        # resolver `super` as if it were a variable
+        if self.current_class == ClassType.NONE:
+            raise InterpreterError(
+                expr.keyword, "Can't use 'super' outside of a class."
+            )
+        elif self.current_class == ClassType.CLASS:
+            raise InterpreterError(
+                expr.keyword, "Can't use 'super' in a class with no superclass."
+            )
         self._resolve_local(expr, expr.keyword)
 
         return None

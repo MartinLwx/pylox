@@ -78,10 +78,18 @@ class Set(Expr):
 
 
 class This(Expr):
-    """`This` is a keyword used in OOP"""
+    """`this` is a keyword used in OOP"""
 
     def __init__(self, keyword: Token):
         self.keyword = keyword
+
+
+class Super(Expr):
+    """`super` is a keyword used in OOP"""
+
+    def __init__(self, keyword: Token, method: Token):
+        self.keyword = keyword
+        self.method = method
 
 
 # Statements

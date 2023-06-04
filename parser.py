@@ -20,6 +20,7 @@ from expr import (
     Get,
     Set,
     This,
+    Super,
     Function,
     ReturnStmt,
     Class,
@@ -255,7 +256,7 @@ class Parser:
         return expr
 
     def _primary(self) -> Expr:
-        """primary     -> NUMBER | STRING | IDENTIFIER | "this" | true" | "false" | "nil" | "(" expression ")" """
+        """primary     -> NUMBER | STRING | IDENTIFIER | "this" | true" | "false" | "nil" | "super" "." IDENTIFIER | (" expression ")" """
         if self._match([TokenType.NUMBER, TokenType.STRING]):
             return Literal(self._previous().literal)
         if self._match([TokenType.IDENTIFIER]):
@@ -269,6 +270,14 @@ class Parser:
         if self._match([TokenType.NIL]):
             return Literal(None)
 
+        if self._match([TokenType.SUPER]):
+            keyword = self._previous()
+            self._consume(TokenType.DOT, "Expect '.' after 'super'.")
+            method = self._consume(
+                TokenType.IDENTIFIER, "Expect superclass method name."
+            )
+
+            return Super(keyword, method)
         if self._match([TokenType.LEFT_PAREN]):
             expr = self._expression()
             self._consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
@@ -303,11 +312,13 @@ class Parser:
     def _class_declaration(self) -> Class:
         """classDecl   -> "class" IDENTIFIER ( "<" IDENTIFFIER )? "{" function* "}" """
         name = self._consume(TokenType.IDENTIFIER, "Expect class name.")
+
         superclass = None
         if self._match([TokenType.LESS]):
             superclass = self._consume(TokenType.IDENTIFIER, "Expect superclass name.")
             superclass = Variable(self._previous())
         logger.debug(f"Found a class: {name} with superclass: {superclass}")
+
         self._consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
 
         methods = []

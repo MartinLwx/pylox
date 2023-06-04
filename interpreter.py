@@ -23,6 +23,7 @@ from expr import (
     Get,
     Set,
     This,
+    Super,
     Function,
     ReturnStmt,
     Class,
@@ -142,7 +143,6 @@ class Interpreter(ExprVisitor):
         return None
 
     def visit_Print(self, stmt: Print):
-        logger.debug(f"Visit Print: {stmt.expression}")
         # statements produce no values
         value = self._evaluate(stmt.expression)
 
@@ -232,8 +232,25 @@ class Interpreter(ExprVisitor):
     def visit_This(self, expr: This):
         return self.lookup_variable(expr.keyword, expr)
 
+    def visit_Super(self, expr: Super):
+        distance = self.locals.get(
+            expr, -1
+        )  # use default -1 just to pass the type checker
+        assert distance != -1, "This is impossible"
+        superclass: Class = self.environment.get_at(distance, "super")
+        obj = self.environment.get_at(distance - 1, "this")
+        method = superclass.find_method(expr.method.lexeme)
+
+        if method:
+            return method.bind(obj)
+        else:
+            raise InterpreterError(
+                expr.method, f"Undefined property '{expr.method.lexeme}'."
+            )
+
     def _execute_block(self, statements: list[Stmt], environment: Environment):
-        logger.debug("Enter new env")
+        logger.debug("Enter new env, and the env chain")
+        self.environment.helper_env_chain()
         previous = self.environment
         try:
             self.environment = environment
@@ -263,6 +280,7 @@ class Interpreter(ExprVisitor):
         return None
 
     def visit_Function(self, stmt: Function):
+        logger.debug(f"Set closure {self.environment} for {stmt.name.lexeme} ")
         stmt.closure = self.environment
         self.environment._define(stmt.name.lexeme, stmt)
 
@@ -286,14 +304,27 @@ class Interpreter(ExprVisitor):
                     stmt.superclass.name, "Superclass must be a class."
                 )
             logger.debug(
-                f"The superclass of {stmt.name.lexeme} is: {superclass.name.lexeme}"
+                f"Find the superclass {superclass} and set _superclass attribute"
             )
             stmt._superclass = superclass
+
         self.environment._define(stmt.name.lexeme, None)
-        self.environment._assign(stmt.name, stmt)
+
+        if stmt.superclass:
+            # store a reference to the superclass
+            self.environment = Environment(self.environment)
+            self.environment._define("super", superclass)
+            self.environment.helper_env_chain()
+
         for method in stmt.methods.values():
+            method.closure = self.environment
             if method.name.lexeme == "init":
                 method.is_initializer = True
+
+        if stmt.superclass:
+            self.environment = self.environment.enclosing
+
+        self.environment._assign(stmt.name, stmt)
 
         return None
 
@@ -311,13 +342,16 @@ class Interpreter(ExprVisitor):
     def lookup_variable(self, name: Token, expr: Expr):
         """Lookup variable based on it's distance, or it may be a global variable"""
         distance = self.locals.get(expr, None)
-        logger.debug(f"The distance of {name.lexeme} is {distance}")
         # WARNING: do not write `if distance` here. Because when it returns 0,
         # which means the variable lives in the innermost scope.
         # And `if 0` will misinterpret this
         if distance is not None:
+            logger.debug(f"distance({name.lexeme}) = {distance}")
             return self.environment.get_at(distance, name.lexeme)
         else:
+            logger.debug(
+                f"distance({name.lexeme}) = {distance}, which means it's a global variable"
+            )
             return self.globals.get(name)
 
     def interpret(self, stmts: list[Stmt] | list[Expr]):

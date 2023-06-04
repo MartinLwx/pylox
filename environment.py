@@ -1,4 +1,5 @@
 from typing import Any
+from loguru import logger
 from tokens import Token
 from errors import InterpreterError
 
@@ -12,7 +13,7 @@ class Environment:
     def __repr__(self):
         lines = ["----- This environment: -----"]
         for name, val in self.values.items():
-            lines.append(f"{name}: {val}")
+            lines.append(f"  {name}: {val}")
         lines.append("-----------------------------")
 
         return "\n".join(lines)
@@ -54,3 +55,10 @@ class Environment:
 
     def assign_at(self, distance: int, name: Token, value: Any):
         self.ancestor(distance).values[name.lexeme] = value
+
+    def helper_env_chain(self):
+        logger.debug("Show the env inheritances:")
+        cursor = self
+        while cursor:
+            logger.debug(cursor)
+            cursor = cursor.enclosing
