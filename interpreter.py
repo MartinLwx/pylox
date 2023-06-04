@@ -279,11 +279,16 @@ class Interpreter(ExprVisitor):
     def visit_Class(self, stmt: Class):
         superclass = None
         if stmt.superclass:
+            # by looking up the variable, we got a class here
             superclass = self._evaluate(stmt.superclass)
             if not isinstance(superclass, Class):
                 raise InterpreterError(
                     stmt.superclass.name, "Superclass must be a class."
                 )
+            logger.debug(
+                f"The superclass of {stmt.name.lexeme} is: {superclass.name.lexeme}"
+            )
+            stmt._superclass = superclass
         self.environment._define(stmt.name.lexeme, None)
         self.environment._assign(stmt.name, stmt)
         for method in stmt.methods.values():

@@ -177,7 +177,8 @@ class Class(Stmt):
     ):
         self.name = name
         self.methods: dict[str, Function] = {}
-        self.superclass = superclass
+        self.superclass = superclass  # as an variable
+        self._superclass: "Class" | None = None  # an an real class
         # use a dict to store all methods, { method_name: method }
         for method in methods:
             self.methods[method.name.lexeme] = method
@@ -186,7 +187,14 @@ class Class(Stmt):
         self.arity = 0 if not initializer else initializer.arity
 
     def find_method(self, name: str) -> Function | None:
-        return self.methods.get(name, None)
+        m = self.methods.get(name, None)
+        if m:
+            return m
+
+        if self._superclass:
+            return self._superclass.find_method(name)
+
+        return None
 
     def __repr__(self):
         return self.name.lexeme
