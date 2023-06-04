@@ -301,9 +301,13 @@ class Parser:
         return Block(statements)
 
     def _class_declaration(self) -> Class:
-        """classDecl   -> "class" IDENTIFIER "{" function* "}" """
+        """classDecl   -> "class" IDENTIFIER ( "<" IDENTIFFIER )? "{" function* "}" """
         name = self._consume(TokenType.IDENTIFIER, "Expect class name.")
-        logger.debug(f"Found a class: {name}")
+        superclass = None
+        if self._match([TokenType.LESS]):
+            superclass = self._consume(TokenType.IDENTIFIER, "Expect superclass name.")
+            superclass = Variable(self._previous())
+        logger.debug(f"Found a class: {name} with superclass: {superclass}")
         self._consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
 
         methods = []
@@ -313,7 +317,7 @@ class Parser:
         logger.debug(f"Found {len(methods)} methods")
         self._consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
 
-        return Class(name, methods)
+        return Class(name, superclass, methods)
 
     def _func_declaration(self, kind: str) -> Function:
         """

@@ -190,6 +190,17 @@ class Resolver(ExprVisitor):
         self._declare(stmt.name)
         self._define(stmt.name)
 
+        # Lox allows class declarations even inside blocks
+        # In that case, we need to make sure it's resloved
+        if stmt.superclass:
+            self._resolve(stmt.superclass)
+
+        # the names of subclass and superclass should not be equal
+        if stmt.superclass and stmt.name.lexeme == stmt.superclass.name.lexeme:
+            raise InterpreterError(
+                stmt.superclass.name, "A class can't inherit from itself."
+            )
+
         self._begin_scope()
         assert len(self._scopes) > 0
         self._scopes[-1]["this"] = True
@@ -201,6 +212,7 @@ class Resolver(ExprVisitor):
         self._end_scope()
 
         self.enclosing_class = enclosing_class
+
         return None
 
     def visit_Binary(self, expr: Binary):

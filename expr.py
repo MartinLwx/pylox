@@ -172,9 +172,12 @@ class ReturnStmt(Stmt):
 
 
 class Class(Stmt):
-    def __init__(self, name: Token, methods: list[Function]):
+    def __init__(
+        self, name: Token, superclass: Variable | None, methods: list[Function]
+    ):
         self.name = name
         self.methods: dict[str, Function] = {}
+        self.superclass = superclass
         # use a dict to store all methods, { method_name: method }
         for method in methods:
             self.methods[method.name.lexeme] = method

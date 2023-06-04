@@ -277,6 +277,13 @@ class Interpreter(ExprVisitor):
         raise ReturnException(value)
 
     def visit_Class(self, stmt: Class):
+        superclass = None
+        if stmt.superclass:
+            superclass = self._evaluate(stmt.superclass)
+            if not isinstance(superclass, Class):
+                raise InterpreterError(
+                    stmt.superclass.name, "Superclass must be a class."
+                )
         self.environment._define(stmt.name.lexeme, None)
         self.environment._assign(stmt.name, stmt)
         for method in stmt.methods.values():
