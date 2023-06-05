@@ -58,4 +58,5 @@ class Environment:
     def helper_env_chain(self):
         cursor = self
         while cursor:
+            print(cursor)
             cursor = cursor.enclosing

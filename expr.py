@@ -194,6 +194,15 @@ class Class(Stmt):
         for method in methods:
             self.methods[method.name.lexeme] = method
         # initiate the arity
+        self.update_arity()
+
+    def update_arity(self):
+        # WARNING: the __init__(...) will be executed in the definition time.
+        # i.e. Parser's _class_declaration method
+        # However, we will set _superclass attribute in the RuntimeError
+        # i.e. Interpreter's visit_Class method
+        # we can only access the _superclass attribute from now on
+        # that's why we need a distinct method to update arity
         initializer = self.find_method("init")
         self.arity = 0 if not initializer else initializer.arity
 
@@ -231,6 +240,7 @@ class Instance:
         method = self.kclass.find_method(name.lexeme)
         if method:
             return method.bind(self)
+
         raise InterpreterError(name, f"Undefined property '{name.lexeme}'.")
 
     def set(self, name: Token, value: Any):
