@@ -172,6 +172,9 @@ class Function(Stmt):
         # and we only need to change the closure of original's method
         return Function(self.name, self.params, self.body, env, self.is_initializer)
 
+    def __str__(self):
+        return f"<fn {self.name.lexeme}>"
+
 
 class ReturnStmt(Stmt):
     def __init__(self, keyword: Token, value: Expr | None):

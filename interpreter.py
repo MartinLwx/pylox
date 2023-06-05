@@ -162,10 +162,11 @@ class Interpreter(ExprVisitor):
     def visit_Assign(self, expr: Assign):
         value = self._evaluate(expr.value)
         distance = self.locals.get(expr)
-        if distance:
+        if distance is not None:
             self.environment.assign_at(distance, expr.name, value)
         else:
             self.globals._assign(expr.name, value)
+
         return value
 
     def visit_Logical(self, expr: Logical):
@@ -240,7 +241,6 @@ class Interpreter(ExprVisitor):
             )
 
     def _execute_block(self, statements: list[Stmt], environment: Environment):
-        self.environment.helper_env_chain()
         previous = self.environment
         try:
             self.environment = environment
@@ -252,6 +252,7 @@ class Interpreter(ExprVisitor):
 
     def visit_Block(self, stmt: Block):
         self._execute_block(stmt.statements, Environment(self.environment))
+
         return None
 
     def visit_IfStmt(self, stmt: IfStmt):
@@ -299,7 +300,6 @@ class Interpreter(ExprVisitor):
             # store a reference to the superclass
             self.environment = Environment(self.environment)
             self.environment._define("super", superclass)
-            self.environment.helper_env_chain()
 
         for method in stmt.methods.values():
             method.closure = self.environment
@@ -318,6 +318,15 @@ class Interpreter(ExprVisitor):
             return "nil"
         if isinstance(val, float):
             return str(val).removesuffix(".0")
+        if (
+            callable(val)
+            and not isinstance(val, Function)
+            and not isinstance(val, Class)
+        ):
+            return "<native fn>"
+        # python will print True/False rather then true/false defined in Lox
+        if isinstance(val, bool):
+            return str(val).lower()
 
         return str(val)
 
