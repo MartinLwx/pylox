@@ -1,4 +1,3 @@
-from loguru import logger
 from tokens import Token, TokenType
 from expr import (
     Stmt,
@@ -123,15 +122,11 @@ class Parser:
         expr = self._logic_or()
 
         if self._match([TokenType.EQUAL]):
-            logger.debug(
-                f"Check if it's an assignment, the type of LHS is {type(expr).__name__}"
-            )
             equals = self._previous()
             value = self._assignment()
             if isinstance(expr, Variable):
                 return Assign(expr.name, value)
             elif isinstance(expr, Get):
-                logger.debug(f"Assign target is Get: {expr}")
                 return Set(expr.obj, expr.name, value)
             self._error(equals, "Invalid assignment target.")
 
@@ -317,7 +312,6 @@ class Parser:
         if self._match([TokenType.LESS]):
             superclass = self._consume(TokenType.IDENTIFIER, "Expect superclass name.")
             superclass = Variable(self._previous())
-        logger.debug(f"Found a class: {name} with superclass: {superclass}")
 
         self._consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
 
@@ -325,7 +319,6 @@ class Parser:
         while not self._check(TokenType.RIGHT_BRACE) and not self._is_at_end():
             methods.append(self._func_declaration("method"))
 
-        logger.debug(f"Found {len(methods)} methods")
         self._consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
 
         return Class(name, superclass, methods)
@@ -428,7 +421,6 @@ class Parser:
 
         # the increment should be executed after the body in each iteration
         if increment:
-            logger.debug(f"Append {increment} to {body}")
             body = Block([body, Expression(increment)])
 
         if condition is None:
@@ -468,12 +460,12 @@ class Parser:
 
         return self._expression_statement()
 
-    def parse(self) -> list[Expr] | list[Stmt] | None:
+    def parse(self) -> list[Expr] | list[Stmt]:
         statements = []
         try:
             while not self._is_at_end():
                 statements.append(self._declarations())
 
             return statements
-        except ParseError:
-            return None
+        except ParseError as e:
+            return e

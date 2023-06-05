@@ -1,6 +1,5 @@
 import sys
 from typing import Any
-from loguru import logger
 from tokens import Token, TokenType
 from parser import Parser
 from ast_printer import AstPrinter
@@ -123,7 +122,6 @@ class Scanner:
             while self._is_digit(self._peek()):
                 self._advance()
 
-        logger.debug(f"Add a number literal: {self._source[self._start:self._current]}")
 
         self._add_token(
             TokenType.NUMBER, float(self._source[self._start : self._current])
@@ -208,9 +206,6 @@ class Scanner:
         while not self.is_at_end():
             # invariant: in each loop
             # , we are at the beginning of the next lexeme
-            # logger.debug(
-            #     f"Ready to scan next token, current strings is {list(self._source[self._current:])}"
-            # )
             self._start = self._current
             self._scan_token()
 
@@ -225,28 +220,18 @@ class Lox:
 
     @classmethod
     def _run(cls, code: str):
-        logger.debug("--- [Lexical analysis] ---")
-        logger.debug("--------------------------")
         lexer = Scanner(code)
         tokens = lexer._scan_tokens()
-        logger.debug("--- [Syntactic analysis] ---")
         parser = Parser(tokens)
         statements = parser.parse()
-        logger.debug("----------------------------")
         if statements is None:
             # which means err happen
             Lox._has_error = True
-            logger.error("Parser Error")
         else:
-            logger.debug("--- [Semantic analysis] ---")
             resolver = Resolver(cls.interpreter)
             resolver._resolve(statements)
-            logger.debug(f"Resolved results: {cls.interpreter.locals}")
-            logger.debug("---------------------------")
 
-            logger.debug("--- [Interpretation] ---")
             cls.interpreter.interpret(statements)
-            logger.debug("------------------------")
 
     @classmethod
     def _run_file(cls, path: str):
@@ -294,3 +279,12 @@ class Lox:
             cls._run_file(args[1])
         else:
             cls._run_prompt()
+
+
+def main(args: list[str]):
+    lox_interpreter = Lox()
+    lox_interpreter.cli(sys.argv)
+
+
+if __name__ == "__main__":
+    main(sys.argv)

@@ -1,4 +1,3 @@
-from loguru import logger
 from enum import Enum
 from expr import (
     ExprVisitor,
@@ -56,7 +55,6 @@ class Resolver(ExprVisitor):
         statements: list[Expr] | list[Stmt] | Expr | Stmt,
     ):
         """Resolve each statement inside"""
-        logger.debug(f"Current scopes: {self._scopes}")
         if isinstance(statements, list):
             for stmt in statements:
                 self.visit(stmt)
@@ -66,14 +64,10 @@ class Resolver(ExprVisitor):
     def _resolve_local(self, expr: Expr, name: Token):
         for i in reversed(range(len(self._scopes))):
             if name.lexeme in self._scopes[i]:
-                logger.debug(
-                    f"Find {name} in scope {i}, and set the hops: {expr} = {len(self._scopes) - 1 - i}"
-                )
                 self.interpreter._resolve(expr, len(self._scopes) - 1 - i)
                 return
 
     def _resolve_function(self, stmt: Function, _type: FunctionType):
-        logger.debug(f"Resolve Function/Method: {stmt.name.lexeme}@{_type.name}")
         enclosing_func = self.current_func
         self.current_func = _type
         self._begin_scope()
@@ -187,7 +181,6 @@ class Resolver(ExprVisitor):
         return None
 
     def visit_Class(self, stmt: Class):
-        logger.debug(f"Entering Class {stmt.name.lexeme}")
         enclosing_class = self.current_class
         self.current_class = ClassType.CLASS
 
@@ -203,7 +196,6 @@ class Resolver(ExprVisitor):
         # Lox allows class declarations even inside blocks
         # In that case, we need to make sure it's resloved
         if stmt.superclass:
-            logger.debug(f"resolve its superclass {stmt.superclass.name.lexeme}")
             self.current_class = ClassType.SUBCLASS
             self._resolve(stmt.superclass)
 
@@ -226,7 +218,6 @@ class Resolver(ExprVisitor):
 
         self.current_class = enclosing_class
 
-        logger.debug(f"Exiting Class {stmt.name.lexeme}")
         return None
 
     def visit_Binary(self, expr: Binary):

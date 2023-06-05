@@ -1,5 +1,4 @@
 from typing import Any
-from loguru import logger
 from tokens import Token
 from errors import InterpreterError
 
@@ -57,8 +56,6 @@ class Environment:
         self.ancestor(distance).values[name.lexeme] = value
 
     def helper_env_chain(self):
-        logger.debug("Show the env inheritances:")
         cursor = self
         while cursor:
-            logger.debug(cursor)
             cursor = cursor.enclosing

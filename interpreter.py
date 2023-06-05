@@ -1,6 +1,5 @@
 import time
 from typing import Any
-from loguru import logger
 from tokens import TokenType, Token
 from expr import (
     ExprVisitor,
@@ -155,15 +154,12 @@ class Interpreter(ExprVisitor):
         if stmt.initializer:
             value = self._evaluate(stmt.initializer)
 
-        logger.debug(f"Define a variable {stmt.name.lexeme} to {value}")
         self.environment._define(stmt.name.lexeme, value)
 
     def visit_Variable(self, expr: Variable):
-        logger.debug(f"Look up {expr.name}")
         return self.lookup_variable(expr.name, expr)
 
     def visit_Assign(self, expr: Assign):
-        logger.debug(f"Handling assign: assign {expr.value} to {expr.name}")
         value = self._evaluate(expr.value)
         distance = self.locals.get(expr)
         if distance:
@@ -186,14 +182,10 @@ class Interpreter(ExprVisitor):
         return self._evaluate(expr.right)
 
     def visit_Call(self, expr: Call):
-        logger.debug(f"Ready to execute function/method: {expr.callee}")
         callee = self._evaluate(expr.callee)
         arguments: list[Expr] = []
         for argument in expr.arguments:
             arguments.append(self._evaluate(argument))
-        logger.debug(
-            f"[Call] {callee} with type {type(callee).__name__}, arity: {callee.arity} vs arguments: {len(arguments)}"
-        )
 
         if not callable(callee):
             raise InterpreterError(expr.paren, "Can only call functions and classes")
@@ -212,7 +204,6 @@ class Interpreter(ExprVisitor):
 
     def visit_Get(self, expr: Get):
         obj = self._evaluate(expr.obj)
-        logger.debug(f"Try to get {expr.name} from {obj}")
         if isinstance(obj, Instance):
             return obj.get(expr.name)
         else:
@@ -249,7 +240,6 @@ class Interpreter(ExprVisitor):
             )
 
     def _execute_block(self, statements: list[Stmt], environment: Environment):
-        logger.debug("Enter new env, and the env chain")
         self.environment.helper_env_chain()
         previous = self.environment
         try:
@@ -258,7 +248,6 @@ class Interpreter(ExprVisitor):
                 self._evaluate(stmt)
         finally:
             # restore to previous environment even if an exception is thrown
-            logger.debug(f"Restore to env\n: {previous}")
             self.environment = previous
 
     def visit_Block(self, stmt: Block):
@@ -280,7 +269,6 @@ class Interpreter(ExprVisitor):
         return None
 
     def visit_Function(self, stmt: Function):
-        logger.debug(f"Set closure {self.environment} for {stmt.name.lexeme} ")
         stmt.closure = self.environment
         self.environment._define(stmt.name.lexeme, stmt)
 
@@ -303,9 +291,6 @@ class Interpreter(ExprVisitor):
                 raise InterpreterError(
                     stmt.superclass.name, "Superclass must be a class."
                 )
-            logger.debug(
-                f"Find the superclass {superclass} and set _superclass attribute"
-            )
             stmt._superclass = superclass
 
         self.environment._define(stmt.name.lexeme, None)
@@ -346,12 +331,8 @@ class Interpreter(ExprVisitor):
         # which means the variable lives in the innermost scope.
         # And `if 0` will misinterpret this
         if distance is not None:
-            logger.debug(f"distance({name.lexeme}) = {distance}")
             return self.environment.get_at(distance, name.lexeme)
         else:
-            logger.debug(
-                f"distance({name.lexeme}) = {distance}, which means it's a global variable"
-            )
             return self.globals.get(name)
 
     def interpret(self, stmts: list[Stmt] | list[Expr]):
