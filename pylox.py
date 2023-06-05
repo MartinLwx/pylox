@@ -4,7 +4,7 @@ from tokens import Token, TokenType
 from parser import Parser
 from ast_printer import AstPrinter
 from interpreter import Interpreter
-from errors import InterpreterError
+from errors import InterpreterError, ParseError
 from resolver import Resolver
 
 
@@ -122,7 +122,6 @@ class Scanner:
             while self._is_digit(self._peek()):
                 self._advance()
 
-
         self._add_token(
             TokenType.NUMBER, float(self._source[self._start : self._current])
         )
@@ -222,16 +221,20 @@ class Lox:
     def _run(cls, code: str):
         lexer = Scanner(code)
         tokens = lexer._scan_tokens()
-        parser = Parser(tokens)
-        statements = parser.parse()
-        if statements is None:
-            # which means err happen
-            Lox._has_error = True
-        else:
+        try:
+            parser = Parser(tokens)
+            statements = parser.parse()
+        except ParseError as e:
+            print(e)
+            return
+
+        try:
             resolver = Resolver(cls.interpreter)
             resolver._resolve(statements)
-
             cls.interpreter.interpret(statements)
+        except InterpreterError as e:
+            Lox._has_error = True
+            print(e)
 
     @classmethod
     def _run_file(cls, path: str):

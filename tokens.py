@@ -63,5 +63,5 @@ class Token:
         return (
             f"[{self.type.name}] {self.lexeme} The literal is {self.literal}"
             if self.literal != ""
-            else f"[{self.type.name}] {self.lexeme}"
+            else f"{self.lexeme}"
         )
