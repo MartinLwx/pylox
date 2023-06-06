@@ -5,26 +5,26 @@ from pathlib import Path
 # see: https://github.com/munificent/craftinginterpreters/blob/master/tool/bin/test.dart
 EXCLUDED_TESTS = [
     # for clox(not support in pylox)
-    "test/function/missing_comma_in_parameters.lox",
-    "test/number/nan_equality.lox",
+    "tests/function/missing_comma_in_parameters.lox",
+    "tests/number/nan_equality.lox",
     # for earlier chapters
-    "test/scanning/identifiers.lox",
-    "test/scanning/keywords.lox",
-    "test/scanning/numbers.lox",
-    "test/scanning/punctuators.lox",
-    "test/scanning/strings.lox",
-    "test/scanning/whitespace.lox",
-    "test/expressions/evaluate.lox",
-    "test/expressions/parse.lox",
-    # pylox has no restriction abount function arguments
-    "test/function/too_many_arguments.lox",
-    "test/function/too_many_parameters.lox",
-    "test/method/too_many_arguments.lox",
-    "test/method/too_many_parameters.lox",
+    "tests/scanning/identifiers.lox",
+    "tests/scanning/keywords.lox",
+    "tests/scanning/numbers.lox",
+    "tests/scanning/punctuators.lox",
+    "tests/scanning/strings.lox",
+    "tests/scanning/whitespace.lox",
+    "tests/expressions/evaluate.lox",
+    "tests/expressions/parse.lox",
+    # pylox has no restriction on function arguments
+    "tests/function/too_many_arguments.lox",
+    "tests/function/too_many_parameters.lox",
+    "tests/method/too_many_arguments.lox",
+    "tests/method/too_many_parameters.lox",
 ]
 
 
-class bcolors:
+class Colors:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
     OKCYAN = "\033[96m"
@@ -63,7 +63,7 @@ def extract_expect(test_case: Path) -> str:
 
 
 def run_test(test_case: Path) -> tuple[bool, str | None]:
-    """Run a test located in test_case and return True if it pass the test, else return False and the error message"""
+    """Run a test located in test_case and return True if it passes the test, else return False and the error message"""
     try:
         output = subprocess.check_output(
             args=shlex.split(f"python pylox.py {test_case}"), text=True
@@ -87,15 +87,15 @@ def run_all_tests(test_folder: Path):
     for test_case in sorted(test_folder.iterdir()):
         if test_case.suffix == ".lox":
             if str(test_case.relative_to(".")) in EXCLUDED_TESTS:
-                print(f"{bcolors.OKBLUE}[SKIP]{bcolors.ENDC} {test_case}")
+                print(f"{Colors.OKBLUE}[SKIP]{Colors.ENDC} {test_case}")
                 SKIP += 1
             else:
                 status, msg = run_test(test_case)
                 if status:
-                    print(f"{bcolors.OKGREEN}[PASS]{bcolors.ENDC} {test_case}")
+                    print(f"{Colors.OKGREEN}[PASS]{Colors.ENDC} {test_case}")
                     PASS += 1
                 else:
-                    print(f"{bcolors.FAIL}[FAIL]{bcolors.ENDC} {test_case}")
+                    print(f"{Colors.FAIL}[FAIL]{Colors.ENDC} {test_case}")
                     print(msg)
                     FAIL += 1
 
@@ -105,7 +105,7 @@ def run_all_tests(test_folder: Path):
 def test_runner(tests: str):
     PASS, SKIP, FAIL = 0, 0, 0
     for test_topic in Path(tests).iterdir():
-        # NOTE: disablie benchmark cause it's too slow
+        # NOTE: disable benchmark because it's too slow
         if test_topic.is_dir() and test_topic.stem not in ["benchmark", "limit"]:
             print(f"------ {test_topic} ------")
             x, y, z = run_all_tests(test_topic)
@@ -113,7 +113,7 @@ def test_runner(tests: str):
             SKIP += y
             FAIL += z
             print("--------------------------")
-    print("--------- Summmary ----------")
+    print("--------- Summary ----------")
     print(
         f"  [PASS]: {PASS: >3} / {(PASS + SKIP + FAIL)} -- {PASS / (PASS + SKIP + FAIL):.2%}"
     )
@@ -123,8 +123,8 @@ def test_runner(tests: str):
     print(
         f"  [FAIL]: {FAIL: >3} / {(PASS + SKIP + FAIL)} -- {FAIL / (PASS + SKIP + FAIL):.2%}"
     )
-    print("-----------------------------")
+    print("----------------------------")
 
 
 if __name__ == "__main__":
-    test_runner("./test")
+    test_runner("./tests")

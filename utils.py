@@ -3,7 +3,7 @@ from functools import wraps
 
 def set_arity(arity: int):
     """Decorated this function f with attribute arity and return.
-    We need this because python won't allow us to modify the attirbutes of built-in function
+    We need this because python won't allow us to modify the attributes of built-in function
     """
 
     def decorated(func):

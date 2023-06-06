@@ -17,9 +17,10 @@ class AstPrinter(ExprVisitor):
     def visit_Grouping(self, expr: Grouping):
         return self.parenthesize("group", [expr.expression])
 
-    def visit_Literal(self, expr: Literal):
+    def visit_Literal(self, expr: Literal) -> str:
         if expr.value is None:
             return "nil"
+        
         return str(expr.value)
 
     def visit_Unary(self, expr: Unary):

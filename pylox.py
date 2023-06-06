@@ -14,8 +14,8 @@ class Lox:
     @classmethod
     def _run(cls, code: str):
         lexer = Scanner(code)
-        tokens = lexer._scan_tokens()
-        if lexer._has_error:
+        tokens = lexer.scan_tokens()
+        if lexer.has_error:
             Lox._has_error = True
             return
         try:

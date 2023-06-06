@@ -150,10 +150,10 @@ class Function(Stmt):
     def __call__(self, interpreter: "Interpreter", arguments: list[Any]):
         env = Environment(self.closure)
         for i, param in enumerate(self.params):
-            env._define(param.lexeme, arguments[i])
+            env.define(param.lexeme, arguments[i])
         # unwind all the way to where the function call began
         try:
-            interpreter._execute_block(self.body.statements, env)
+            interpreter.execute_block(self.body.statements, env)
         except ReturnException as e:
             # if this function is an initializer, we forcibly return "this"
             if self.is_initializer and self.closure is not None:
@@ -169,7 +169,7 @@ class Function(Stmt):
         When the method is called, that will become the parent of the method body's env
         """
         env = Environment(self.closure)
-        env._define("this", instance)
+        env.define("this", instance)
 
         # i.e. we insert a special scope which contains "this"
         # and we only need to change the closure of original's method
@@ -191,8 +191,8 @@ class Class(Stmt):
     ):
         self.name = name
         self.methods: dict[str, Function] = {}
-        self.superclass = superclass  # as an variable
-        self._superclass: "Class" | None = None  # an an real class
+        self.superclass = superclass  # as a variable
+        self._superclass: "Class" | None = None  # as a real class
         # use a dict to store all methods, { method_name: method }
         for method in methods:
             self.methods[method.name.lexeme] = method

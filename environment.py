@@ -17,17 +17,17 @@ class Environment:
 
         return "\n".join(lines)
 
-    def _define(self, name: str, value: Any):
+    def define(self, name: str, value: Any):
         """A variable definition binds a new name to a value"""
         self.values[name] = value
 
-    def _assign(self, name: Token, value: Any):
+    def assign(self, name: Token, value: Any):
         """Assignment is not allowed to create a new variable"""
         if name.lexeme in self.values:
             self.values[name.lexeme] = value
             return
         if self.enclosing:
-            self.enclosing._assign(name, value)
+            self.enclosing.assign(name, value)
             return
 
         raise InterpreterError(name, f"Undefined variable '{name.lexeme}'.")

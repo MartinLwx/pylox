@@ -33,7 +33,7 @@ class Scanner:
         self._current = 0
         self._line = 1
 
-        self._has_error = False
+        self.has_error = False
 
     def is_at_end(self):
         return self._current >= len(self._source)
@@ -73,7 +73,7 @@ class Scanner:
         return self._source[self._current]
 
     def _peek_next(self) -> str:
-        """Don't consume the . in a number literal until we're sure thers is a digit after it"""
+        """Don't consume the . in a number literal until we're sure there is a digit after it"""
         if self._current + 1 >= len(self._source):
             return "\0"
 
@@ -96,7 +96,7 @@ class Scanner:
             self._advance()
 
         if self.is_at_end():
-            self._has_error = True
+            self.has_error = True
             print(f"[line {self._line}] Error: Unterminated string.")
             return
 
@@ -194,10 +194,10 @@ class Scanner:
                 # string literals
                 self._form_string()
             case _:
-                self._has_error = True
-                print(f"[line {self.line}] Error : Unexpected character.")
+                self.has_error = True
+                print(f"[line {self._line}] Error : Unexpected character.")
 
-    def _scan_tokens(self):
+    def scan_tokens(self):
         while not self.is_at_end():
             # invariant: in each loop
             # , we are at the beginning of the next lexeme

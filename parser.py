@@ -33,7 +33,7 @@ class Parser:
         self.current = 0
 
     def _synchronize(self):
-        """It discard tokens until it thinks it has found a statement boundary"""
+        """It discards tokens until it thinks it has found a statement boundary """
         self._advance()
         while not self._is_at_end():
             if self._previous().type == TokenType.SEMICOLON:
@@ -268,14 +268,14 @@ class Parser:
     def _print_statement(self) -> Print:
         """printStmt   -> "print" expression ";" """
         value = self._expression()
-        self._consume(TokenType.SEMICOLON, "Expecte ';' after value.")
+        self._consume(TokenType.SEMICOLON, "Expect ';' after value.")
 
         return Print(value)
 
     def _expression_statement(self) -> Expression:
         """exprStmt    -> expression ";" """
         expr = self._expression()
-        self._consume(TokenType.SEMICOLON, "Expecte ';' after expression.")
+        self._consume(TokenType.SEMICOLON, "Expect ';' after expression.")
 
         return Expression(expr)
 
@@ -290,12 +290,12 @@ class Parser:
         return Block(statements)
 
     def _class_declaration(self) -> Class:
-        """classDecl   -> "class" IDENTIFIER ( "<" IDENTIFFIER )? "{" function* "}" """
+        """classDecl   -> "class" IDENTIFIER ( "<" IDENTIFIER )? "{" function* "}" """
         name = self._consume(TokenType.IDENTIFIER, "Expect class name.")
 
         superclass = None
         if self._match([TokenType.LESS]):
-            superclass = self._consume(TokenType.IDENTIFIER, "Expect superclass name.")
+            self._consume(TokenType.IDENTIFIER, "Expect superclass name.")
             superclass = Variable(self._previous())
 
         self._consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
@@ -372,7 +372,7 @@ class Parser:
         """ifStmt      -> "if" "(" expression ")" statement ( "else" statement )?"""
         self._consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'")
         condition = self._expression()
-        self._consume(TokenType.RIGHT_PAREN, "Expect ')' after if conditon.")
+        self._consume(TokenType.RIGHT_PAREN, "Expect ')' after if condition.")
 
         then_branch = self._statement()
         else_branch = None
@@ -385,7 +385,7 @@ class Parser:
         """whileStmt   -> "while" "(" expression ")" statement"""
         self._consume(TokenType.LEFT_PAREN, "Expect '(' after 'if'")
         condition = self._expression()
-        self._consume(TokenType.RIGHT_PAREN, "Expect ')' after if conditon.")
+        self._consume(TokenType.RIGHT_PAREN, "Expect ')' after if condition.")
 
         statement = self._statement()
 
@@ -438,7 +438,7 @@ class Parser:
         self._consume(TokenType.SEMICOLON, "Expect ';' after return value.")
         return ReturnStmt(keyword, value)
 
-    def _statement(self) -> Print | ReturnStmt | Expression | Block:
+    def _statement(self) -> Stmt:
         """statement   -> exprStmt | forStmt | ifStmt | printStmt | returnStmt | whileStmt | block"""
         if self._match([TokenType.FOR]):
             return self._for_statement()

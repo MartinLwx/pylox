@@ -40,7 +40,7 @@ class Interpreter(ExprVisitor):
         # tracks the current environment
         self.environment = self.globals
         self.locals: dict[Expr, int] = {}
-        self.globals._define("clock", set_arity(0)(time.time))
+        self.globals.define("clock", set_arity(0)(time.time))
 
     def _check_number_operand(self, operator: Token, operand):
         if isinstance(operand, float):
@@ -155,7 +155,7 @@ class Interpreter(ExprVisitor):
         if stmt.initializer:
             value = self._evaluate(stmt.initializer)
 
-        self.environment._define(stmt.name.lexeme, value)
+        self.environment.define(stmt.name.lexeme, value)
 
     def visit_Variable(self, expr: Variable):
         return self.lookup_variable(expr.name, expr)
@@ -166,12 +166,12 @@ class Interpreter(ExprVisitor):
         if distance is not None:
             self.environment.assign_at(distance, expr.name, value)
         else:
-            self.globals._assign(expr.name, value)
+            self.globals.assign(expr.name, value)
 
         return value
 
     def visit_Logical(self, expr: Logical):
-        """A logic oprator merely guarantees it will return a value with appropriate truthiness"""
+        """A logic operator merely guarantees it will return a value with appropriate truthiness"""
         left = self._evaluate(expr.left)
 
         if expr.operator.type == TokenType.OR:
@@ -241,7 +241,7 @@ class Interpreter(ExprVisitor):
                 expr.method, f"Undefined property '{expr.method.lexeme}'."
             )
 
-    def _execute_block(self, statements: list[Stmt], environment: Environment):
+    def execute_block(self, statements: list[Stmt], environment: Environment):
         previous = self.environment
         try:
             self.environment = environment
@@ -252,7 +252,7 @@ class Interpreter(ExprVisitor):
             self.environment = previous
 
     def visit_Block(self, stmt: Block):
-        self._execute_block(stmt.statements, Environment(self.environment))
+        self.execute_block(stmt.statements, Environment(self.environment))
 
         return None
 
@@ -274,7 +274,7 @@ class Interpreter(ExprVisitor):
         new_function = Function(
             stmt.name, stmt.params, stmt.body, self.environment, stmt.is_initializer
         )
-        self.environment._define(stmt.name.lexeme, new_function)
+        self.environment.define(stmt.name.lexeme, new_function)
 
         return None
 
@@ -298,12 +298,12 @@ class Interpreter(ExprVisitor):
             stmt._superclass = superclass
             stmt.update_arity()
 
-        self.environment._define(stmt.name.lexeme, None)
+        self.environment.define(stmt.name.lexeme, None)
 
         if stmt.superclass:
             # store a reference to the superclass
             self.environment = Environment(self.environment)
-            self.environment._define("super", superclass)
+            self.environment.define("super", superclass)
 
         for method in stmt.methods.values():
             method.closure = self.environment
@@ -313,7 +313,7 @@ class Interpreter(ExprVisitor):
         if stmt.superclass:
             self.environment = self.environment.enclosing
 
-        self.environment._assign(stmt.name, stmt)
+        self.environment.assign(stmt.name, stmt)
 
         return None
 
@@ -328,17 +328,17 @@ class Interpreter(ExprVisitor):
             and not isinstance(val, Class)
         ):
             return "<native fn>"
-        # python will print True/False rather then true/false defined in Lox
+        # python will print True/False rather than true/false defined in Lox
         if isinstance(val, bool):
             return str(val).lower()
 
         return str(val)
 
-    def _resolve(self, expr: Expr, depth: int):
+    def resolve(self, expr: Expr, depth: int):
         self.locals[expr] = depth
 
     def lookup_variable(self, name: Token, expr: Expr):
-        """Lookup variable based on it's distance, or it may be a global variable"""
+        """Lookup variable based on its distance, or it may be a global variable"""
         distance = self.locals.get(expr, None)
         # WARNING: do not write `if distance` here. Because when it returns 0,
         # which means the variable lives in the innermost scope.
