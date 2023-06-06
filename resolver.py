@@ -27,7 +27,7 @@ from expr import (
 )
 from interpreter import Interpreter
 from tokens import Token
-from errors import InterpreterError
+from errors import error_report
 
 
 class FunctionType(Enum):
@@ -49,6 +49,7 @@ class Resolver(ExprVisitor):
         self._scopes: list[dict[str, bool]] = []
         self.current_func = FunctionType.NONE
         self.current_class = ClassType.NONE
+        self._has_error = False
 
     def _resolve(
         self,
@@ -60,6 +61,12 @@ class Resolver(ExprVisitor):
                 self.visit(stmt)
         else:
             self.visit(statements)
+
+    def _error_and_set_flag(
+        self, token: Token, msg: str, *, show_line_number: bool = True
+    ):
+        error_report(token, msg, show_line_number)
+        self._has_error = True
 
     def _resolve_local(self, expr: Expr, name: Token):
         for i in reversed(range(len(self._scopes))):
@@ -93,8 +100,10 @@ class Resolver(ExprVisitor):
         # this variable is not ready yet, that is, exists but is unavailable
         scope = self._scopes[-1]
         if name.lexeme in scope:
-            raise InterpreterError(
-                name, "Already a variable with this name in this scope."
+            self._error_and_set_flag(
+                name,
+                "Already a variable with this name in this scope.",
+                show_line_number=False,
             )
         scope[name.lexeme] = False
 
@@ -122,9 +131,10 @@ class Resolver(ExprVisitor):
 
     def visit_Variable(self, expr: Variable):
         if self._scopes and not self._scopes[-1].get(expr.name.lexeme, True):
-            # TODO: Lox.error?
-            raise InterpreterError(
-                expr.name, "Can't read local variable in its own initializer."
+            self._error_and_set_flag(
+                expr.name,
+                "Can't read local variable in its own initializer.",
+                show_line_number=False,
             )
         self._resolve_local(expr, expr.name)
 
@@ -168,7 +178,7 @@ class Resolver(ExprVisitor):
 
     def visit_ReturnStmt(self, stmt: ReturnStmt):
         if self.current_func == FunctionType.NONE:
-            raise InterpreterError(stmt.keyword, "Can't return from top-level code.")
+            self._error_and_set_flag(stmt.keyword, "Can't return from top-level code.", show_line_number=False)
         if stmt.value:
             self._resolve(stmt.value)
 
@@ -189,7 +199,7 @@ class Resolver(ExprVisitor):
 
         # the names of subclass and superclass should not be equal
         if stmt.superclass and stmt.name.lexeme == stmt.superclass.name.lexeme:
-            raise InterpreterError(
+            self._error_and_set_flag(
                 stmt.superclass.name, "A class can't inherit from itself."
             )
 
@@ -247,7 +257,9 @@ class Resolver(ExprVisitor):
 
     def visit_This(self, expr: This):
         if self.current_class == ClassType.NONE:
-            raise InterpreterError(expr.keyword, "Can't use 'this' outside of a class.")
+            self._error_and_set_flag(
+                expr.keyword, "Can't use 'this' outside of a class."
+            )
         self._resolve_local(expr, expr.keyword)
 
         return None
@@ -255,12 +267,16 @@ class Resolver(ExprVisitor):
     def visit_Super(self, expr: Super):
         # resolver `super` as if it were a variable
         if self.current_class == ClassType.NONE:
-            raise InterpreterError(
-                expr.keyword, "Can't use 'super' outside of a class."
+            self._error_and_set_flag(
+                expr.keyword,
+                "Can't use 'super' outside of a class.",
+                show_line_number=False,
             )
         elif self.current_class == ClassType.CLASS:
-            raise InterpreterError(
-                expr.keyword, "Can't use 'super' in a class with no superclass."
+            self._error_and_set_flag(
+                expr.keyword,
+                "Can't use 'super' in a class with no superclass.",
+                show_line_number=False,
             )
         self._resolve_local(expr, expr.keyword)
 

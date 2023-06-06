@@ -2,7 +2,7 @@ import sys
 from typing import Any
 from tokens import Token, TokenType
 from parser import Parser
-from ast_printer import AstPrinter
+from pprint import pprint
 from interpreter import Interpreter
 from errors import InterpreterError, ParseError
 from resolver import Resolver
@@ -228,9 +228,12 @@ class Lox:
             print(e)
             return
 
+        resolver = Resolver(cls.interpreter)
+        resolver._resolve(statements)
+        if resolver._has_error:
+            Lox._has_error = True
+            return
         try:
-            resolver = Resolver(cls.interpreter)
-            resolver._resolve(statements)
             cls.interpreter.interpret(statements)
         except InterpreterError as e:
             Lox._has_error = True
