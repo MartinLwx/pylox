@@ -178,8 +178,18 @@ class Resolver(ExprVisitor):
 
     def visit_ReturnStmt(self, stmt: ReturnStmt):
         if self.current_func == FunctionType.NONE:
-            self._error_and_set_flag(stmt.keyword, "Can't return from top-level code.", show_line_number=False)
+            self._error_and_set_flag(
+                stmt.keyword,
+                "Can't return from top-level code.",
+                show_line_number=False,
+            )
         if stmt.value:
+            if self.current_func == FunctionType.INITIALIZER:
+                self._error_and_set_flag(
+                    stmt.keyword,
+                    "Can't return a value from an initializer.",
+                    show_line_number=False,
+                )
             self._resolve(stmt.value)
 
         return None
@@ -200,7 +210,9 @@ class Resolver(ExprVisitor):
         # the names of subclass and superclass should not be equal
         if stmt.superclass and stmt.name.lexeme == stmt.superclass.name.lexeme:
             self._error_and_set_flag(
-                stmt.superclass.name, "A class can't inherit from itself."
+                stmt.superclass.name,
+                "A class can't inherit from itself.",
+                show_line_number=False,
             )
 
         # Lox allows class declarations even inside blocks
@@ -258,7 +270,9 @@ class Resolver(ExprVisitor):
     def visit_This(self, expr: This):
         if self.current_class == ClassType.NONE:
             self._error_and_set_flag(
-                expr.keyword, "Can't use 'this' outside of a class."
+                expr.keyword,
+                "Can't use 'this' outside of a class.",
+                show_line_number=False,
             )
         self._resolve_local(expr, expr.keyword)
 

@@ -155,6 +155,9 @@ class Function(Stmt):
         try:
             interpreter._execute_block(self.body.statements, env)
         except ReturnException as e:
+            # if this function is an initializer, we forcibly return "this"
+            if self.is_initializer and self.closure is not None:
+                return self.closure.get_at(0, "this")
             return e.value
         # if this function is an initializer, we forcibly return "this"
         if self.is_initializer and self.closure is not None:
