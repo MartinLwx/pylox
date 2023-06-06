@@ -24,21 +24,7 @@ from expr import (
     ReturnStmt,
     Class,
 )
-
-
-class ParseError(Exception):
-    def __init__(self, token: Token, msg: str):
-        self.token = token
-        self.msg = msg
-
-    def report(self):
-        # put this method here to avoid circular import
-        if self.token.type == TokenType.EOF:
-            return f"[line {self.token.line}] Error at end: {self.msg}"
-        else:
-            return (
-                f"[line {self.token.line}] Error at '{self.token.lexeme}': {self.msg}"
-            )
+from errors import ParseError
 
 
 class Parser:
@@ -67,7 +53,6 @@ class Parser:
 
     def _error(self, token: Token, msg: str) -> ParseError:
         err = ParseError(token, msg)
-        err.report()
 
         return err
 
@@ -128,7 +113,7 @@ class Parser:
                 return Assign(expr.name, value)
             elif isinstance(expr, Get):
                 return Set(expr.obj, expr.name, value)
-            self._error(equals, "Invalid assignment target.")
+            raise self._error(equals, "Invalid assignment target.")
 
         return expr
 
@@ -278,7 +263,7 @@ class Parser:
             self._consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
             return Grouping(expr)
 
-        raise self._error(self._peek(), "Expect expressions")
+        raise self._error(self._peek(), "Expect expression.")
 
     def _print_statement(self) -> Print:
         """printStmt   -> "print" expression ";" """
@@ -290,7 +275,7 @@ class Parser:
     def _expression_statement(self) -> Expression:
         """exprStmt    -> expression ";" """
         expr = self._expression()
-        self._consume(TokenType.SEMICOLON, "Expecte ';' after value.")
+        self._consume(TokenType.SEMICOLON, "Expecte ';' after expression.")
 
         return Expression(expr)
 
@@ -360,18 +345,28 @@ class Parser:
 
     def _declarations(self):
         """declaration -> classDecl | funcDecl | varDecl | statement"""
-        try:
-            if self._match([TokenType.CLASS]):
-                return self._class_declaration()
-            if self._match([TokenType.FUN]):
-                return self._func_declaration("function")
-            if self._match([TokenType.VAR]):
-                return self._var_declaration()
+        # NOTE: Disable self._synchronize so that we can pass the tests
+        # try:
+        #     if self._match([TokenType.CLASS]):
+        #         return self._class_declaration()
+        #     if self._match([TokenType.FUN]):
+        #         return self._func_declaration("function")
+        #     if self._match([TokenType.VAR]):
+        #         return self._var_declaration()
 
-            return self._statement()
-        except ParseError:
-            self._synchronize()
-            return None
+        #     return self._statement()
+        # except ParseError as e:
+        #     self._synchronize()
+        #     return None
+
+        if self._match([TokenType.CLASS]):
+            return self._class_declaration()
+        if self._match([TokenType.FUN]):
+            return self._func_declaration("function")
+        if self._match([TokenType.VAR]):
+            return self._var_declaration()
+
+        return self._statement()
 
     def _if_statement(self):
         """ifStmt      -> "if" "(" expression ")" statement ( "else" statement )?"""
@@ -462,10 +457,7 @@ class Parser:
 
     def parse(self) -> list[Expr] | list[Stmt]:
         statements = []
-        try:
-            while not self._is_at_end():
-                statements.append(self._declarations())
+        while not self._is_at_end():
+            statements.append(self._declarations())
 
-            return statements
-        except ParseError as e:
-            return e
+        return statements
