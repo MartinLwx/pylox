@@ -271,8 +271,10 @@ class Interpreter(ExprVisitor):
         return None
 
     def visit_Function(self, stmt: Function):
-        stmt.closure = self.environment
-        self.environment._define(stmt.name.lexeme, stmt)
+        new_function = Function(
+            stmt.name, stmt.params, stmt.body, self.environment, stmt.is_initializer
+        )
+        self.environment._define(stmt.name.lexeme, new_function)
 
         return None
 
