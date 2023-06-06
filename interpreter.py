@@ -1,5 +1,4 @@
 import time
-from typing import Any
 from tokens import TokenType, Token
 from expr import (
     ExprVisitor,
@@ -44,7 +43,7 @@ class Interpreter(ExprVisitor):
         self.globals._define("clock", set_arity(0)(time.time))
 
     def _check_number_operand(self, operator: Token, operand):
-        if isinstance(operator, float):
+        if isinstance(operand, float):
             return
         raise InterpreterError(operator, "Operand must be a number")
 
@@ -71,7 +70,9 @@ class Interpreter(ExprVisitor):
             return True
         if left is None:
             return False
-        return left == right
+
+        # in python, True == 1.0 is True, that's not the expected behavior
+        return left == right if type(left) == type(right) else False
 
     def visit_Literal(self, expr: Literal):
         return expr.value
@@ -293,6 +294,7 @@ class Interpreter(ExprVisitor):
                     stmt.superclass.name, "Superclass must be a class."
                 )
             stmt._superclass = superclass
+            stmt.update_arity()
 
         self.environment._define(stmt.name.lexeme, None)
 
