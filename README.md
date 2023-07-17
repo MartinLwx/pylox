@@ -1,6 +1,6 @@
 ## What's Lox
 
-Lox is a dynamically typed, interpreted script language, which is designed by Robert Nystorm for his book [*Crafting interpreters*](https://craftinginterpreters.com/).
+Lox is a dynamically typed, interpreted script language, which is designed by Robert Nystrom for his book [*Crafting interpreters*](https://craftinginterpreters.com/).
 
 ## What's pylox
 
